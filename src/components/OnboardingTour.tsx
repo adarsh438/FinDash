@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 
 const OnboardingTour = () => {
