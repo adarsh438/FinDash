@@ -9,6 +9,7 @@ import { ShoppingBag, Coffee, Home, DollarSign, HelpCircle, ArrowUp, Plus } from
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
+import { useToast } from '../context/ToastContext';
 
 const CATEGORY_ICONS: Record<string, any> = {
     shopping: ShoppingBag,
@@ -29,6 +30,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 const Expenses = () => {
     const { currentUser } = useAuth();
     const { formatCurrency } = useCurrency();
+    const { showToast } = useToast();
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -37,6 +39,7 @@ const Expenses = () => {
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('shopping');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (!currentUser) return;
@@ -53,6 +56,7 @@ const Expenses = () => {
         e.preventDefault();
         if (!currentUser) return;
 
+        setIsSubmitting(true);
         try {
             await expenseService.addExpense(currentUser.uid, {
                 title,
@@ -61,13 +65,16 @@ const Expenses = () => {
                 date: new Date().toISOString().split('T')[0]
             });
             setIsModalOpen(false);
+            showToast("Expense added successfully", "success");
             // Reset form
             setTitle('');
             setAmount('');
             setCategory('shopping');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add expense", error);
-            alert("Failed to add expense");
+            showToast(error.message || "Failed to add expense", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -220,8 +227,8 @@ const Expenses = () => {
                         <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} style={{ flex: 1 }}>
                             Cancel
                         </Button>
-                        <Button type="submit" style={{ flex: 1 }}>
-                            Save Expense
+                        <Button type="submit" style={{ flex: 1 }} disabled={isSubmitting}>
+                            {isSubmitting ? 'Saving...' : 'Save Expense'}
                         </Button>
                     </div>
                 </form>

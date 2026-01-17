@@ -7,13 +7,16 @@ import Modal from '../components/Modal';
 import Input from '../components/Input';
 import { useAuth } from '../context/AuthContext';
 import { expenseService, type Expense } from '../services/expenseService';
+import { useToast } from '../context/ToastContext';
 import './Transactions.css';
 
 const Transactions = () => {
     const { currentUser } = useAuth();
+    const { showToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactions, setTransactions] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form State
     const [title, setTitle] = useState('');
@@ -35,6 +38,7 @@ const Transactions = () => {
         e.preventDefault();
         if (!currentUser) return;
 
+        setIsSubmitting(true);
         try {
             await expenseService.addExpense(currentUser.uid, {
                 title,
@@ -43,13 +47,16 @@ const Transactions = () => {
                 date: new Date().toISOString().split('T')[0]
             });
             setIsModalOpen(false);
+            showToast("Transaction added successfully", "success");
             // Reset form
             setTitle('');
             setAmount('');
             setCategory('shopping');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add transaction", error);
-            alert("Failed to add transaction");
+            showToast(error.message || "Failed to add transaction", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -135,8 +142,8 @@ const Transactions = () => {
                         <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} style={{ flex: 1 }}>
                             Cancel
                         </Button>
-                        <Button type="submit" style={{ flex: 1 }}>
-                            Save Transaction
+                        <Button type="submit" style={{ flex: 1 }} disabled={isSubmitting}>
+                            {isSubmitting ? 'Saving...' : 'Save Transaction'}
                         </Button>
                     </div>
                 </form>

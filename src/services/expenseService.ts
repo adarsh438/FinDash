@@ -27,6 +27,16 @@ export const expenseService = {
     // Add a new expense
     addExpense: async (userId: string, expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
         try {
+            if (!expense.title || expense.title.trim() === '') {
+                throw new Error("Title is required");
+            }
+            if (expense.amount <= 0) {
+                throw new Error("Amount must be greater than 0");
+            }
+            if (!['shopping', 'food', 'utilities', 'income', 'other'].includes(expense.category)) {
+                throw new Error("Invalid category");
+            }
+
             const docRef = await addDoc(collection(db, EXPENSES_COLLECTION), {
                 ...expense,
                 userId,

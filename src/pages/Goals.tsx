@@ -7,11 +7,13 @@ import Input from '../components/Input';
 import { useAuth } from '../context/AuthContext';
 import { goalService, type Goal } from '../services/goalService';
 import { useCurrency } from '../context/CurrencyContext';
+import { useToast } from '../context/ToastContext';
 import './Goals.css';
 
 const Goals = () => {
     const { currentUser } = useAuth();
     const { formatCurrency } = useCurrency();
+    const { showToast } = useToast();
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -23,10 +25,12 @@ const Goals = () => {
     const [title, setTitle] = useState('');
     const [targetAmount, setTargetAmount] = useState('');
     const [deadline, setDeadline] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Fund Goal Form
     const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
     const [fundAmount, setFundAmount] = useState('');
+    const [isFunding, setIsFunding] = useState(false);
 
     useEffect(() => {
         if (!currentUser) return;
@@ -43,6 +47,7 @@ const Goals = () => {
         e.preventDefault();
         if (!currentUser) return;
 
+        setIsSubmitting(true);
         try {
             await goalService.addGoal(currentUser.uid, {
                 title,
@@ -51,11 +56,15 @@ const Goals = () => {
                 color: 'var(--accent-primary)' // Default color for now
             });
             setIsAddModalOpen(false);
+            showToast("Goal created successfully", "success");
             setTitle('');
             setTargetAmount('');
             setDeadline('');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add goal", error);
+            showToast(error.message || "Failed to add goal", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -63,19 +72,30 @@ const Goals = () => {
         e.preventDefault();
         if (!selectedGoal || !fundAmount) return;
 
+        setIsFunding(true);
         try {
             await goalService.addFunds(selectedGoal.id!, selectedGoal.currentAmount, parseFloat(fundAmount));
             setIsFundModalOpen(false);
+            showToast("Funds added successfully!", "success");
             setFundAmount('');
             setSelectedGoal(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to add funds", error);
+            showToast(error.message || "Failed to add funds", "error");
+        } finally {
+            setIsFunding(false);
         }
     };
 
     const handleDelete = async (goalId: string) => {
         if (window.confirm("Are you sure you want to delete this goal?")) {
-            await goalService.deleteGoal(goalId);
+            try {
+                await goalService.deleteGoal(goalId);
+                showToast("Goal deleted", "info");
+            } catch (error: any) {
+                console.error("Failed to delete goal", error);
+                showToast("Failed to delete goal", "error");
+            }
         }
     };
 
@@ -172,7 +192,9 @@ const Goals = () => {
                         value={deadline}
                         onChange={(e) => setDeadline(e.target.value)}
                     />
-                    <Button type="submit" style={{ marginTop: '1rem' }}>Create Goal</Button>
+                    <Button type="submit" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
+                        {isSubmitting ? 'Creating...' : 'Create Goal'}
+                    </Button>
                 </form>
             </Modal>
 
@@ -193,7 +215,9 @@ const Goals = () => {
                         value={fundAmount}
                         onChange={(e) => setFundAmount(e.target.value)}
                     />
-                    <Button type="submit" style={{ marginTop: '1rem' }}>Add Funds</Button>
+                    <Button type="submit" style={{ marginTop: '1rem' }} disabled={isFunding}>
+                        {isFunding ? 'Adding...' : 'Add Funds'}
+                    </Button>
                 </form>
             </Modal>
         </div>
