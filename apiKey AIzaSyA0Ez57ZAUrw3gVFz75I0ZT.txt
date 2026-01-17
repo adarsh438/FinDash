@@ -1,0 +1,13 @@
+apiKey: "AIzaSyA0Ez57ZAUrw3gVFz75I0ZTBQp-fQlbR-U",
+
+  authDomain: "finance-app-93f7b.firebaseapp.com",
+
+  projectId: "finance-app-93f7b",
+
+  storageBucket: "finance-app-93f7b.firebasestorage.app",
+
+  messagingSenderId: "148427951208",
+
+  appId: "1:148427951208:web:02a8045c816cd3adbabfdd",
+
+  measurementId: "G-HFEST2XEZ1"
