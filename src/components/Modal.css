@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -69,76 +68,4 @@
         opacity: 1;
         transform: translateY(0) scale(1);
     }
-=======
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
-}
-
-.modal-content {
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    background: #18181b;
-    /* Fallback */
-    background: linear-gradient(145deg, rgba(30, 30, 35, 0.95), rgba(20, 20, 25, 0.98));
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow-2xl);
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 0;
-    /* Reset for header/body split */
-}
-
-.modal-header {
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border-light);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.close-btn {
-    padding: var(--spacing-xs);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    transition: all 0.2s;
-}
-
-.close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-}
-
-.modal-body {
-    padding: var(--spacing-lg);
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.96);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
->>>>>>> 6601a4a265f358168171eb60ea8f3a1b19e13166
 }
