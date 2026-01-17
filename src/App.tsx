@@ -14,6 +14,8 @@ import Transactions from './pages/Transactions';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 
+import OnboardingTour from './components/OnboardingTour';
+
 // ProtectedRoute component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, loading } = useAuth();
@@ -24,7 +26,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" />;
   }
 
-  return children;
+  return (
+    <>
+      <OnboardingTour />
+      {children}
+    </>
+  );
 };
 
 function App() {

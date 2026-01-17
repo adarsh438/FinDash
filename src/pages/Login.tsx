@@ -5,7 +5,7 @@ import { Smartphone, Globe } from 'lucide-react';
 import './Login.css';
 
 const Login = () => {
-    const { loginWithGoogle, loginWithEmail, signupWithEmail, currentUser } = useAuth();
+    const { loginWithGoogle, loginWithEmail, signupWithEmail, currentUser, loginAsDemo } = useAuth();
     const navigate = useNavigate();
 
     const [isLogin, setIsLogin] = React.useState(false);
@@ -108,6 +108,30 @@ const Login = () => {
                             {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
                         </button>
                     </form>
+
+                    {/* Demo Button */}
+                    <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                        <button
+                            type="button"
+                            onClick={() => loginAsDemo()}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid var(--glass-border)',
+                                color: 'var(--text-primary)',
+                                padding: '8px 16px',
+                                borderRadius: '20px',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s',
+                                marginBottom: '1rem'
+                            }}
+                        >
+                            <span>🎮</span> Try Demo Mode
+                        </button>
+                    </div>
 
                     <div className="social-login">
                         <div className="social-btn"><Globe size={20} /></div>

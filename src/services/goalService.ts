@@ -58,6 +58,13 @@ export const goalService = {
 
     // Subscribe to goals
     subscribeToGoals: (userId: string, callback: (goals: Goal[]) => void) => {
+        if (userId === 'demo-user-123') {
+            import('./demoData').then(({ DEMO_GOALS }) => {
+                callback(DEMO_GOALS);
+            });
+            return () => { };
+        }
+
         const q = query(
             collection(db, GOALS_COLLECTION),
             where("userId", "==", userId),

@@ -51,6 +51,13 @@ export const expenseService = {
 
     // Subscribe to expenses for a user (Real-time updates)
     subscribeToExpenses: (userId: string, callback: (expenses: Expense[]) => void) => {
+        if (userId === 'demo-user-123') {
+            import('./demoData').then(({ DEMO_EXPENSES }) => {
+                callback(DEMO_EXPENSES);
+            });
+            return () => { };
+        }
+
         const q = query(
             collection(db, EXPENSES_COLLECTION),
             where("userId", "==", userId),

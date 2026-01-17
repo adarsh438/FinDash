@@ -8,13 +8,18 @@ export interface UserProfile {
     role: 'free' | 'premium';
     isPremium: boolean; // Computed or duplicate for easier access
     premiumActivatedAt?: string;
-    premiumSource?: 'razorpay' | 'dev' | 'manual';
+    premiumSource?: 'razorpay' | 'dev' | 'manual' | 'demo';
     createdAt: string;
 }
 
 export const userService = {
     // specific Create or Update user in Firestore on login
     syncUser: async (user: { uid: string; email: string | null; displayName: string | null }) => {
+        if (user.uid === 'demo-user-123') {
+            const { DEMO_USER_PROFILE } = await import('./demoData');
+            return DEMO_USER_PROFILE;
+        }
+
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
 
@@ -37,6 +42,10 @@ export const userService = {
 
     // Get current user profile
     getUserProfile: async (uid: string): Promise<UserProfile | null> => {
+        if (uid === 'demo-user-123') {
+            const { DEMO_USER_PROFILE } = await import('./demoData');
+            return DEMO_USER_PROFILE;
+        }
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
@@ -47,6 +56,13 @@ export const userService = {
 
     // Subscribe to real-time profile changes
     subscribeToProfile: (uid: string, callback: (profile: UserProfile | null) => void, onError?: (error: any) => void) => {
+        if (uid === 'demo-user-123') {
+            import('./demoData').then(({ DEMO_USER_PROFILE }) => {
+                callback(DEMO_USER_PROFILE);
+            });
+            return () => { };
+        }
+
         const userRef = doc(db, 'users', uid);
         return onSnapshot(userRef, (doc) => {
             if (doc.exists()) {

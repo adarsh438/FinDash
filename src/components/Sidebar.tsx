@@ -83,13 +83,21 @@ const Sidebar = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'color 0.2s'
+                        transition: 'color 0.2s',
+                        borderRadius: '8px'
                     }}
-                    title="Log Out"
-                    onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent-danger)'}
-                    onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    title={userProfile?.premiumSource === 'demo' ? "Exit Demo Mode" : "Log Out"}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.color = 'var(--accent-danger)';
+                        e.currentTarget.style.background = 'rgba(255, 59, 48, 0.1)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                        e.currentTarget.style.background = 'none';
+                    }}
                 >
                     <LogOut size={20} />
+                    {userProfile?.premiumSource === 'demo' && <span style={{ marginLeft: '8px', fontSize: '0.8rem', fontWeight: 500 }}>Exit</span>}
                 </button>
             </div>
         </aside>

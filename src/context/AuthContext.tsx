@@ -13,6 +13,8 @@ interface AuthContextType {
     refreshProfile: () => Promise<void>;
     loginWithEmail: (email: string, pass: string) => Promise<void>;
     signupWithEmail: (email: string, pass: string) => Promise<void>;
+    loginAsDemo: () => Promise<void>;
+    isDemo: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,17 +109,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await createUserWithEmailAndPassword(auth, email, pass);
     };
 
+    const loginAsDemo = async () => {
+        setLoading(true);
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const demoUser = {
+            uid: 'demo-user-123',
+            email: 'demo@financeapp.com',
+            displayName: 'Demo User',
+            emailVerified: true,
+            isAnonymous: false,
+            metadata: {},
+            providerData: [],
+            refreshToken: '',
+            tenantId: null,
+            delete: async () => { },
+            getIdToken: async () => 'demo-token',
+            getIdTokenResult: async () => ({} as any),
+            reload: async () => { },
+            toJSON: () => ({}),
+            phoneNumber: null,
+            photoURL: null // Profile will define this
+        } as unknown as User;
+
+        setCurrentUser(demoUser);
+
+        // Import dynamically or use the one we have
+        const { DEMO_USER_PROFILE } = await import('../services/demoData');
+        setUserProfile(DEMO_USER_PROFILE);
+
+        setLoading(false);
+    };
+
     const logout = async () => {
         try {
-            await signOut(auth);
-            setUserProfile(null);
+            if (currentUser?.uid === 'demo-user-123') {
+                setCurrentUser(null);
+                setUserProfile(null);
+            } else {
+                await signOut(auth);
+                setUserProfile(null);
+            }
         } catch (error) {
             console.error("Failed to logout", error);
         }
     };
 
     return (
-        <AuthContext.Provider value={{ currentUser, userProfile, loading, loginWithGoogle, logout, refreshProfile, loginWithEmail, signupWithEmail }}>
+        <AuthContext.Provider value={{
+            currentUser,
+            userProfile,
+            loading,
+            loginWithGoogle,
+            logout,
+            refreshProfile,
+            loginWithEmail,
+            signupWithEmail,
+            loginAsDemo,
+            isDemo: currentUser?.uid === 'demo-user-123'
+        }}>
             {!loading && children}
         </AuthContext.Provider>
     );
