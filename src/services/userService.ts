@@ -1,11 +1,14 @@
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface UserProfile {
     uid: string;
     email: string;
     displayName: string;
-    isPremium: boolean;
+    role: 'free' | 'premium';
+    isPremium: boolean; // Computed or duplicate for easier access
+    premiumActivatedAt?: string;
+    premiumSource?: 'razorpay' | 'dev' | 'manual';
     createdAt: string;
 }
 
@@ -21,7 +24,8 @@ export const userService = {
                 uid: user.uid,
                 email: user.email || '',
                 displayName: user.displayName || 'User',
-                isPremium: false, // Default to free
+                role: 'free',
+                isPremium: false,
                 createdAt: new Date().toISOString()
             };
             await setDoc(userRef, newUser);
@@ -41,9 +45,29 @@ export const userService = {
         return null;
     },
 
-    // Upgrade to Premium
-    upgradeToPremium: async (uid: string) => {
+    // Subscribe to real-time profile changes
+    subscribeToProfile: (uid: string, callback: (profile: UserProfile | null) => void, onError?: (error: any) => void) => {
         const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, { isPremium: true });
+        return onSnapshot(userRef, (doc) => {
+            if (doc.exists()) {
+                callback(doc.data() as UserProfile);
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error("Profile subscription error:", error);
+            if (onError) onError(error);
+        });
+    },
+
+    // Upgrade to Premium (Mock/Dev only mostly, real upgrades should be backend)
+    upgradeToPremium: async (uid: string, source: 'dev' | 'razorpay' = 'dev') => {
+        const userRef = doc(db, 'users', uid);
+        await updateDoc(userRef, {
+            role: 'premium',
+            isPremium: true,
+            premiumActivatedAt: new Date().toISOString(),
+            premiumSource: source
+        });
     }
 };

@@ -7,34 +7,42 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper to check if user owns the document (for collections where userId is a field)
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // Helper to check if user owns the document (for User profile documents)
+    // Helper to check if user owns the document 
     function isSelf(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
     // --- Users Collection ---
-    // Documents are indexed by UID. Only the user can access their own profile.
+    // Documents are indexed by UID. 
     match /users/{userId} {
-      allow read, write: if isSelf(userId);
+      allow read: if isSelf(userId);
+      // Allow create: standard creation
+      allow create: if isSelf(userId);
+      
+      // Allow update: BUT restrict modifying 'role', 'isPremium', 'premiumActivatedAt'
+      // effectively making them read-only for the client (except via backend/mock flow).
+      // For the MOCK FLOW (Client-side upgrade), we will temporarily allow it if premiumSource is 'dev'.
+      // In a real production environment with a backend, we would BLOCK 'role' updates entirely from client.
+      allow update: if isSelf(userId) 
+                    && (
+                      // 1. Normal update (not touching premium fields)
+                      (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isPremium', 'premiumActivatedAt']))
+                      ||
+                      // 2. Dev Mode Exception: Allow upgrade if source is 'dev' or 'manual'
+                      (request.resource.data.premiumSource == 'dev' || request.resource.data.premiumSource == 'manual')
+                    );
     }
 
     // --- Expenses Collection ---
-    // Documents have a 'userId' field.
     match /expenses/{expenseId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid 
-                    && request.resource.data.userId == request.auth.uid; // Prevent transfer
+                    && request.resource.data.userId == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // --- Goals Collection ---
-    // Documents have a 'userId' field.
     match /goals/{goalId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
@@ -43,7 +51,7 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     
-    // Default deny all other access
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

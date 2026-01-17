@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Send, Bot, User as UserIcon } from 'lucide-react';
 import Card from '../components/Card';
 import Input from '../components/Input';
@@ -7,28 +6,39 @@ import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { expenseService, type Expense } from '../services/expenseService';
 import { aiService, type ChatMessage } from '../services/aiService';
+import UpgradeModal from '../components/UpgradeModal';
 import './AICoach.css';
 
 const AICoach = () => {
     const { currentUser, userProfile } = useAuth();
-    const navigate = useNavigate();
+    // navigate removed
 
     // ... existing state ...
 
     // Premium Check
+    // Premium Check
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+    // If just checking loading state...
+    // logic below
+
+    // We can keep the "return" logic but make it a nice overlay similar to Analytics
+    // But since `AICoach.tsx` currently returns early, let's keep that structure but use the Modal.
+
     if (!userProfile?.isPremium) {
         return (
-            <div className="coach-containerWrapper" style={{ padding: '2rem', textAlign: 'center' }}>
-                <Card style={{ padding: '3rem', maxWidth: '600px', margin: '0 auto' }}>
+            <div className="coach-containerWrapper" style={{ padding: '2rem', textAlign: 'center', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Card style={{ padding: '3rem', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
                     <Bot size={48} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
                     <h2>AI Coach is a Premium Feature</h2>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
                         Upgrade your account to get personalized financial advice powered by AI.
                     </p>
-                    <Button onClick={() => navigate('/premium')} variant="primary">
+                    <Button onClick={() => setIsUpgradeModalOpen(true)} style={{ justifyContent: 'center' }}>
                         Unlock AI Coach
                     </Button>
                 </Card>
+                <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
             </div>
         );
     }

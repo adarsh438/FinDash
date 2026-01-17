@@ -7,18 +7,21 @@ import { billService, type RecurringBill } from '../services/billService';
 import { useCurrency } from '../context/CurrencyContext';
 import './Bills.css';
 
-import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
+import UpgradeModal from '../components/UpgradeModal';
 
 const Bills = () => {
     const { currentUser, userProfile } = useAuth();
     const { formatCurrency } = useCurrency();
-    const navigate = useNavigate();
+    // navigate removed
 
     // Premium Check
+    // Premium Check
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
     if (!userProfile?.isPremium) {
         return (
-            <div style={{ padding: '2rem', textAlign: 'center', animation: 'fadeIn 0.5s ease-out' }}>
+            <div style={{ padding: '2rem', textAlign: 'center', animation: 'fadeIn 0.5s ease-out', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Card style={{ padding: '3rem', maxWidth: '600px', margin: '0 auto' }}>
                     <div style={{ marginBottom: '1rem' }}>
                         <Calendar size={48} color="var(--accent-primary)" />
@@ -28,10 +31,11 @@ const Bills = () => {
                         See your upcoming recurring bills and never miss a payment again.
                         Available for Premium users.
                     </p>
-                    <Button onClick={() => navigate('/premium')} variant="primary">
+                    <Button onClick={() => setIsUpgradeModalOpen(true)} variant="primary" style={{ justifyContent: 'center' }}>
                         Upgrade to Premium
                     </Button>
                 </Card>
+                <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
             </div>
         );
     }

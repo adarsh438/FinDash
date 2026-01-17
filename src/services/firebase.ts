@@ -11,6 +11,15 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Debug check for production
+if (!firebaseConfig.apiKey) {
+    console.error("Firebase API Key is missing! Make sure to set VITE_FIREBASE_API_KEY in your environment variables.");
+    // Optional: Visual alert if in window context to help user debug on Vercel
+    if (typeof window !== 'undefined') {
+        document.body.innerHTML = '<div style="color: red; padding: 20px;"><h1>Configuration Error</h1><p>Missing VITE_FIREBASE_API_KEY. Please check your deployment settings.</p></div>';
+    }
+}
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);

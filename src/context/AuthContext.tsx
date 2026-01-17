@@ -29,26 +29,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let profileUnsubscribe: (() => void) | null = null;
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setCurrentUser(user);
+
+            // Clean up previous subscription if any
+            if (profileUnsubscribe) {
+                profileUnsubscribe();
+                profileUnsubscribe = null;
+            }
+
             if (user) {
-                // Sync user logic
+                setLoading(true);
                 try {
-                    const profile = await userService.syncUser({
+                    // 1. Ensure user exists
+                    await userService.syncUser({
                         uid: user.uid,
                         email: user.email,
                         displayName: user.displayName
                     });
-                    setUserProfile(profile);
+
+                    // 2. Subscribe to changes
+                    profileUnsubscribe = userService.subscribeToProfile(
+                        user.uid,
+                        (profile) => {
+                            setUserProfile(profile);
+                            setLoading(false);
+                        },
+                        (error) => {
+                            console.error("Subscription failed", error);
+                            setLoading(false);
+                        }
+                    );
                 } catch (error) {
                     console.error("Profile sync error:", error);
+                    setLoading(false);
                 }
             } else {
                 setUserProfile(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
-        return unsubscribe;
+
+        // Cleanup function for the effect
+        return () => {
+            unsubscribe();
+            if (profileUnsubscribe) {
+                profileUnsubscribe();
+            }
+        };
     }, []);
 
     const refreshProfile = async () => {
