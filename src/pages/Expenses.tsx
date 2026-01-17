@@ -5,7 +5,10 @@ import { expenseService, type Expense } from '../services/expenseService';
 import { useCurrency } from '../context/CurrencyContext';
 // Reuse dashboard css for simplicity or create new one if needed
 import './Dashboard.css';
-import { ShoppingBag, Coffee, Home, DollarSign, HelpCircle, ArrowUp } from 'lucide-react';
+import { ShoppingBag, Coffee, Home, DollarSign, HelpCircle, ArrowUp, Plus } from 'lucide-react';
+import Button from '../components/Button';
+import Modal from '../components/Modal';
+import Input from '../components/Input';
 
 const CATEGORY_ICONS: Record<string, any> = {
     shopping: ShoppingBag,
@@ -29,6 +32,12 @@ const Expenses = () => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Modal & Form State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [title, setTitle] = useState('');
+    const [amount, setAmount] = useState('');
+    const [category, setCategory] = useState('shopping');
+
     useEffect(() => {
         if (!currentUser) return;
 
@@ -39,6 +48,28 @@ const Expenses = () => {
 
         return () => unsubscribe();
     }, [currentUser]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentUser) return;
+
+        try {
+            await expenseService.addExpense(currentUser.uid, {
+                title,
+                amount: parseFloat(amount),
+                category: category as any,
+                date: new Date().toISOString().split('T')[0]
+            });
+            setIsModalOpen(false);
+            // Reset form
+            setTitle('');
+            setAmount('');
+            setCategory('shopping');
+        } catch (error) {
+            console.error("Failed to add expense", error);
+            alert("Failed to add expense");
+        }
+    };
 
     // Calculate Category Totals
     const categoryTotals = expenses
@@ -56,7 +87,12 @@ const Expenses = () => {
 
     return (
         <div style={{ animation: 'fadeIn 0.5s ease-out', paddingBottom: '2rem' }}>
-            <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem', fontWeight: 700 }}>Expense Analysis</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Expense Analysis</h1>
+                <Button onClick={() => setIsModalOpen(true)} icon={<Plus size={18} />}>
+                    Add Expense
+                </Button>
+            </div>
 
             {loading ? <p>Loading...</p> : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -144,6 +180,52 @@ const Expenses = () => {
                     </Card>
                 </div>
             )}
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Add New Expense"
+            >
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    <Input
+                        label="Description"
+                        placeholder="e.g. Grocery Shopping"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                    />
+                    <Input
+                        label="Amount"
+                        type="number"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                    />
+
+                    <div className="input-group">
+                        <label className="input-label">Category</label>
+                        <select
+                            className="glass-input"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                        >
+                            <option value="shopping">Shopping</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="income">Income</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+                        <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} style={{ flex: 1 }}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" style={{ flex: 1 }}>
+                            Save Expense
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };
