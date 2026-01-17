@@ -111,6 +111,16 @@ const Bills = () => {
                                     <div className="days-remaining" style={{ color: isOverdue ? 'var(--accent-danger)' : 'var(--text-primary)' }}>
                                         {isOverdue ? `${Math.abs(daysDue)} days ago` : daysDue === 0 ? 'Today' : `${daysDue} days left`}
                                     </div>
+                                    <div className="confidence-badge" style={{
+                                        fontSize: '0.75rem',
+                                        marginTop: '0.5rem',
+                                        color: bill.confidence > 0.8 ? 'var(--accent-success)' : 'var(--accent-warning)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        {bill.confidence > 0.8 ? '🔒' : '⚠️'} {Math.round(bill.confidence * 100)}% confidence
+                                    </div>
                                 </div>
                             </Card>
                         );

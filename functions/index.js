@@ -71,5 +71,44 @@
 //   res.json({ status: 'ok' });
 // });
 
-// Placeholder until we install firebase-functions dependency
-console.log("Cloud functions skeleton created.");
+// ------------------------------------------------------------------
+// AI Backend Layer
+// This is where we would securely call OpenAI/Gemini without exposing keys.
+// ------------------------------------------------------------------
+
+// exports.askAICoach = functions.https.onCall(async (data, context) => {
+//     // 1. Authentication Check
+//     if (!context.auth) {
+//         throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+//     }
+//
+//     // 2. Rate Limiting (Simple In-Memory or Firestore Counter)
+//     // const userId = context.auth.uid;
+//     // const isPremium = await checkUserPremiumStatus(userId);
+//     // if (!isPremium && await hasExceededFreeLimit(userId)) {
+//     //     throw new functions.https.HttpsError('resource-exhausted', 'Free limit reached. Upgrade for more.');
+//     // }
+//
+//     // 3. Data Aggregation (Privacy Safety)
+//     // The client sends aggregated stats, or we fetch them here from Firestore.
+//     // Ideally, fetch here so client can't lie.
+//     // const expenses = await fetchUserExpenses(userId);
+//     // const summary = aggregateExpenses(expenses);
+//
+//     // 4. Prompt Engineering
+//     // const systemPrompt = `You are a helpful financial coach...`;
+//     // const userPrompt = `Here is the spending summary: ${JSON.stringify(summary)}. User Question: "${data.message}"`;
+//
+//     // 5. Call LLM (OpenAI / Gemini)
+//     // const response = await openai.chat.completions.create({ ... });
+//
+//     // return { text: response.choices[0].message.content };
+//
+//     return { text: "This is a placeholder response from the secure backend." };
+// });
+
+// Helper placeholders
+// async function checkUserPremiumStatus(uid) { return false; }
+// async function hasExceededFreeLimit(uid) { return false; }
+
+console.log("Cloud functions skeleton created. Uncomment to deploy.");

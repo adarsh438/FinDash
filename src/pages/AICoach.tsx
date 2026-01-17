@@ -25,29 +25,16 @@ const AICoach = () => {
     // We can keep the "return" logic but make it a nice overlay similar to Analytics
     // But since `AICoach.tsx` currently returns early, let's keep that structure but use the Modal.
 
-    if (!userProfile?.isPremium) {
-        return (
-            <div className="coach-containerWrapper" style={{ padding: '2rem', textAlign: 'center', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Card style={{ padding: '3rem', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-                    <Bot size={48} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
-                    <h2>AI Coach is a Premium Feature</h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                        Upgrade your account to get personalized financial advice powered by AI.
-                    </p>
-                    <Button onClick={() => setIsUpgradeModalOpen(true)} style={{ justifyContent: 'center' }}>
-                        Unlock AI Coach
-                    </Button>
-                </Card>
-                <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
-            </div>
-        );
-    }
+    // TEASER MODE: Allow access but intercept messages
+    const isPremium = userProfile?.isPremium;
 
     // ... existing implementation ...
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: 'init',
-            text: "Hi! I'm your AI Finance Coach. Ask me about your spending, generic savings tips, or how to budget better!",
+            text: isPremium
+                ? "Hi! I'm your AI Finance Coach. Ask me about your spending, trends, or savings!"
+                : "Hi! I'm your AI Finance Coach. I can analyze your transactions and find hidden savings. Ask me 'How am I doing?' to see what I can do!",
             sender: 'ai',
             timestamp: new Date()
         }
@@ -86,6 +73,22 @@ const AICoach = () => {
         setInputValue('');
         setIsTyping(true);
 
+        // FREE USER INTERCEPTION
+        if (!isPremium) {
+            setTimeout(() => {
+                setIsTyping(false);
+                const teaserMsg: ChatMessage = {
+                    id: (Date.now() + 1).toString(),
+                    text: "🔒 I've analyzed your recent transactions and found 3 key insights about your spending trends. Upgrade to Premium to unlock your full financial report and personalized savings advice!",
+                    sender: 'ai',
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, teaserMsg]);
+                setIsUpgradeModalOpen(true);
+            }, 1000);
+            return;
+        }
+
         try {
             const aiResponseText = await aiService.generateResponse(userMsg.text, { expenses: recentExpenses });
 
@@ -100,7 +103,8 @@ const AICoach = () => {
             console.error("AI Error:", error);
             // Optional: Error message
         } finally {
-            setIsTyping(false);
+            // Only stop typing if we didn't hit the free user block (which handles it manually)
+            if (isPremium) setIsTyping(false);
         }
     };
 
@@ -152,6 +156,8 @@ const AICoach = () => {
                     </Button>
                 </form>
             </Card>
+
+            <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
         </div>
     );
 };
