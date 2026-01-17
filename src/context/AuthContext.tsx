@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { type User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { type User, onAuthStateChanged, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
 import { userService, type UserProfile } from '../services/userService';
 
@@ -11,6 +11,8 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     refreshProfile: () => Promise<void>;
+    loginWithEmail: (email: string, pass: string) => Promise<void>;
+    signupWithEmail: (email: string, pass: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,6 +99,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const loginWithEmail = async (email: string, pass: string) => {
+        await signInWithEmailAndPassword(auth, email, pass);
+    };
+
+    const signupWithEmail = async (email: string, pass: string) => {
+        await createUserWithEmailAndPassword(auth, email, pass);
+    };
+
     const logout = async () => {
         try {
             await signOut(auth);
@@ -107,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ currentUser, userProfile, loading, loginWithGoogle, logout, refreshProfile }}>
+        <AuthContext.Provider value={{ currentUser, userProfile, loading, loginWithGoogle, logout, refreshProfile, loginWithEmail, signupWithEmail }}>
             {!loading && children}
         </AuthContext.Provider>
     );
