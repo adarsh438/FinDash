@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .paywall-container {
     max-width: 900px;
     margin: 0 auto;
@@ -95,4 +96,103 @@
     margin-top: 1rem;
     font-size: 0.8rem;
     color: var(--text-muted);
+=======
+.paywall-container {
+    max-width: 900px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-out;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.paywall-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.paywall-header h1 {
+    font-size: 2.5rem;
+    margin: 0.5rem 0;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.paywall-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.plans-grid {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.plan-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 2.5rem !important;
+    position: relative;
+    border: 2px solid var(--accent-primary);
+    background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(10, 10, 10, 0.95)) !important;
+    box-shadow: 0 10px 40px -10px rgba(118, 59, 246, 0.3);
+}
+
+.plan-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-gradient);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.plan-card h2 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.price {
+    font-size: 3rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: white;
+}
+
+.price span {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+}
+
+.features-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.guarantee {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+>>>>>>> 6601a4a265f358168171eb60ea8f3a1b19e13166
 }
