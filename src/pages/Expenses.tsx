@@ -5,24 +5,28 @@ import { expenseService, type Expense } from '../services/expenseService';
 import { useCurrency } from '../context/CurrencyContext';
 // Reuse dashboard css for simplicity or create new one if needed
 import './Dashboard.css';
-import { ShoppingBag, Coffee, Home, DollarSign, HelpCircle, ArrowUp, Plus } from 'lucide-react';
+import { Coffee, Home, DollarSign, HelpCircle, ArrowUp, Plus, Bus, BookOpen, Tv } from 'lucide-react';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 import { useToast } from '../context/ToastContext';
 
 const CATEGORY_ICONS: Record<string, any> = {
-    shopping: ShoppingBag,
     food: Coffee,
-    utilities: Home,
+    rent_hostel: Home,
+    travel: Bus,
+    subscriptions: Tv,
+    study_materials: BookOpen,
     income: DollarSign,
     other: HelpCircle
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-    shopping: 'var(--accent-primary)',
     food: 'var(--accent-warning)',
-    utilities: 'var(--accent-info)',
+    rent_hostel: '#8b5cf6',
+    travel: '#06b6d4',
+    subscriptions: '#ec4899',
+    study_materials: '#f472b6',
     income: 'var(--accent-success)',
     other: 'var(--text-secondary)'
 };
@@ -38,7 +42,7 @@ const Expenses = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('shopping');
+    const [category, setCategory] = useState('food');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -69,7 +73,7 @@ const Expenses = () => {
             // Reset form
             setTitle('');
             setAmount('');
-            setCategory('shopping');
+            setCategory('food');
         } catch (error: any) {
             console.error("Failed to add expense", error);
             showToast(error.message || "Failed to add expense", "error");
@@ -125,7 +129,7 @@ const Expenses = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <Icon size={16} color={color} />
-                                                <span style={{ textTransform: 'capitalize' }}>{category}</span>
+                                                <span style={{ textTransform: 'capitalize' }}>{category.replace('_', ' ')}</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <span style={{ fontWeight: 600 }}>{formatCurrency(amount)}</span>
@@ -170,13 +174,16 @@ const Expenses = () => {
                                     flexDirection: 'column',
                                     boxShadow: `0 0 20px -5px ${CATEGORY_COLORS[sortedCategories[0][0]]}`
                                 }}>
-                                    <ShoppingBag size={32} color={CATEGORY_COLORS[sortedCategories[0][0]]} />
+                                    {(() => {
+                                        const CatIcon = CATEGORY_ICONS[sortedCategories[0][0]] || HelpCircle;
+                                        return <CatIcon size={32} color={CATEGORY_COLORS[sortedCategories[0][0]]} />;
+                                    })()}
                                     <span style={{ marginTop: '0.5rem', fontWeight: 600, textTransform: 'capitalize' }}>
-                                        {sortedCategories[0][0]}
+                                        {sortedCategories[0][0].replace('_', ' ')}
                                     </span>
                                 </div>
                                 <p style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    You spend the most on <span style={{ color: 'var(--text-primary)' }}>{sortedCategories[0][0]}</span>.
+                                    You spend the most on <span style={{ color: 'var(--text-primary)' }}>{sortedCategories[0][0].replace('_', ' ')}</span>.
                                 </p>
                             </div>
                         ) : (
@@ -196,7 +203,7 @@ const Expenses = () => {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                     <Input
                         label="Description"
-                        placeholder="e.g. Grocery Shopping"
+                        placeholder="e.g. Hoste Rent / Pizza Party"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                     />
@@ -215,9 +222,11 @@ const Expenses = () => {
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
                         >
-                            <option value="shopping">Shopping</option>
-                            <option value="food">Food & Dining</option>
-                            <option value="utilities">Utilities</option>
+                            <option value="food">Food</option>
+                            <option value="rent_hostel">Rent / Hostel</option>
+                            <option value="travel">Travel</option>
+                            <option value="subscriptions">Subscriptions</option>
+                            <option value="study_materials">Study Materials</option>
                             <option value="income">Income</option>
                             <option value="other">Other</option>
                         </select>

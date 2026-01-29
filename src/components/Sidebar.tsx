@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, Settings, CreditCard, Bot, Calendar, Target, Crown, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, Settings, CreditCard, Bot, Calendar, Target, Crown, LogOut, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
@@ -39,6 +39,10 @@ const Sidebar = ({ isCollapsed, toggleCollapse }: SidebarProps) => {
                 <NavLink to="/expenses" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Expenses" : ""}>
                     <CreditCard />
                     {!isCollapsed && <span>Expenses</span>}
+                </NavLink>
+                <NavLink to="/groups" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Groups" : ""}>
+                    <Users />
+                    {!isCollapsed && <span>Groups</span>}
                 </NavLink>
                 <NavLink to="/coach" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "AI Coach" : ""}>
                     <Bot />

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Card from '../components/Card';
 import TransactionRow from '../components/TransactionRow';
 import Skeleton from '../components/Skeleton';
+import SafeToSpendWidget from '../components/SafeToSpendWidget';
 import { useAuth } from '../context/AuthContext';
-import { expenseService, type Expense } from '../services/expenseService';
+import { expenseService, type Expense, type Budget } from '../services/expenseService';
 import { useCurrency } from '../context/CurrencyContext';
+import { useToast } from '../context/ToastContext';
 import { Wallet, TrendingUp, TrendingDown, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
@@ -13,25 +15,52 @@ const Dashboard = () => {
     const { currentUser } = useAuth();
     const { formatCurrency } = useCurrency();
     const navigate = useNavigate();
+    const { showToast } = useToast();
+
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [budget, setBudget] = useState<Budget | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const daysRemaining = (() => {
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return lastDay.getDate() - now.getDate();
+    })();
+
+    const handleSetBudget = useCallback(async () => {
+        if (!currentUser) return;
+        const amountStr = prompt("Enter your monthly budget amount (₹):", budget?.amount.toString() || "5000");
+        if (amountStr && !isNaN(parseFloat(amountStr))) {
+            const amount = parseFloat(amountStr);
+            try {
+                await expenseService.setBudget(currentUser.uid, amount, 'monthly');
+                showToast(`Budget set to ${formatCurrency(amount)}`, 'success');
+            } catch (error) {
+                console.error(error);
+                showToast("Failed to update budget", 'error');
+            }
+        }
+    }, [currentUser, budget, formatCurrency, showToast]);
 
     useEffect(() => {
         if (!currentUser) return;
 
-        // Safety timeout in case Firestore hangs or permissions fail
-        const safetyTimer = setTimeout(() => {
-            setLoading(false);
-        }, 5000);
+        // Safety timeout
+        const safetyTimer = setTimeout(() => setLoading(false), 5000);
 
-        const unsubscribe = expenseService.subscribeToExpenses(currentUser.uid, (data) => {
+        const unsubscribeExpenses = expenseService.subscribeToExpenses(currentUser.uid, (data) => {
             setExpenses(data);
-            setLoading(false);
+            setLoading(false); // Ensure loading is false when data arrives
             clearTimeout(safetyTimer);
         });
 
+        const unsubscribeBudget = expenseService.subscribeToBudget(currentUser.uid, (data) => {
+            setBudget(data);
+        });
+
         return () => {
-            unsubscribe();
+            unsubscribeExpenses();
+            unsubscribeBudget();
             clearTimeout(safetyTimer);
         };
     }, [currentUser]);
@@ -55,6 +84,10 @@ const Dashboard = () => {
                     <Skeleton width={350} height={20} style={{ marginTop: '0.5rem' }} />
                 </div>
 
+                <div className="safe-section" style={{ marginBottom: '1.5rem' }}>
+                    <Skeleton height={180} style={{ borderRadius: '16px' }} />
+                </div>
+
                 <div className="stats-grid">
                     <Skeleton height={140} style={{ borderRadius: '16px' }} />
                     <Skeleton height={140} style={{ borderRadius: '16px' }} />
@@ -73,6 +106,15 @@ const Dashboard = () => {
             <div className="dashboard-header">
                 <h1>Welcome back, {currentUser?.displayName?.split(' ')[0] || 'User'}! 👋</h1>
                 <p>Here's what's happening with your money today.</p>
+            </div>
+
+            <div className="safe-section" style={{ marginBottom: '1.5rem' }}>
+                <SafeToSpendWidget
+                    budget={budget}
+                    totalSpentMonth={totalExpenses} // Note: This assumes all fetched expenses are this month. For prod, we need filtering.
+                    daysRemaining={daysRemaining}
+                    onSetBudget={handleSetBudget}
+                />
             </div>
 
             <div className="stats-grid">
@@ -127,7 +169,7 @@ const Dashboard = () => {
                                 title={expense.title}
                                 date={expense.date}
                                 amount={expense.category === 'income' ? expense.amount : -expense.amount}
-                                category={expense.category as any}
+                                category={expense.category}
                             />
                         ))
                     )}

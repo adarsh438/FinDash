@@ -18,6 +18,7 @@ const Goals = lazy(() => import('./pages/Goals'));
 const Paywall = lazy(() => import('./pages/Paywall'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Groups = lazy(() => import('./pages/Groups'));
 
 // Loading Fallback
 const PageLoader = () => (
@@ -68,6 +69,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="expenses" element={<Expenses />} />
               <Route path="transactions" element={<Transactions />} />
+              <Route path="groups" element={<Groups />} />
               <Route path="coach" element={<AICoach />} />
               <Route path="bills" element={<Bills />} />
               <Route path="goals" element={<Goals />} />

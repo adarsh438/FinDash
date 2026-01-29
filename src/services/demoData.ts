@@ -36,17 +36,17 @@ const ts = (daysAgo: number) => Timestamp.fromDate(d(daysAgo));
 
 export const DEMO_EXPENSES: Expense[] = [
     { id: 'd1', userId: 'demo', title: 'Monthly Salary', amount: 5000, category: 'income', date: iso(2), createdAt: ts(2) },
-    { id: 'd2', userId: 'demo', title: 'Rent Payment', amount: 1200, category: 'other', date: iso(3), createdAt: ts(3) },
+    { id: 'd2', userId: 'demo', title: 'Rent Payment', amount: 1200, category: 'rent_hostel', date: iso(3), createdAt: ts(3) },
     { id: 'd3', userId: 'demo', title: 'Grocery Run', amount: 150.50, category: 'food', date: iso(5), createdAt: ts(5) },
-    { id: 'd4', userId: 'demo', title: 'Netflix Subscription', amount: 15.99, category: 'other', date: iso(10), createdAt: ts(10) },
-    { id: 'd5', userId: 'demo', title: 'Uber Ride', amount: 24.50, category: 'other', date: iso(12), createdAt: ts(12) },
-    { id: 'd6', userId: 'demo', title: 'Spotify Premium', amount: 9.99, category: 'other', date: iso(15), createdAt: ts(15) },
+    { id: 'd4', userId: 'demo', title: 'Netflix Subscription', amount: 15.99, category: 'subscriptions', date: iso(10), createdAt: ts(10) },
+    { id: 'd5', userId: 'demo', title: 'Uber Ride', amount: 24.50, category: 'travel', date: iso(12), createdAt: ts(12) },
+    { id: 'd6', userId: 'demo', title: 'Spotify Premium', amount: 9.99, category: 'subscriptions', date: iso(15), createdAt: ts(15) },
     { id: 'd7', userId: 'demo', title: 'Gym Membership', amount: 45.00, category: 'other', date: iso(18), createdAt: ts(18) },
     { id: 'd8', userId: 'demo', title: 'Coffee Shop', amount: 5.75, category: 'food', date: iso(1), createdAt: ts(1) },
-    { id: 'd9', userId: 'demo', title: 'Electric Bill', amount: 85.20, category: 'utilities', date: iso(20), createdAt: ts(20) },
+    { id: 'd9', userId: 'demo', title: 'Electric Bill', amount: 85.20, category: 'other', date: iso(20), createdAt: ts(20) },
     { id: 'd10', userId: 'demo', title: 'Freelance Project', amount: 850, category: 'income', date: iso(15), createdAt: ts(15) },
-    { id: 'd11', userId: 'demo', title: 'Amazon Purchase', amount: 65.00, category: 'shopping', date: iso(4), createdAt: ts(4) },
-    { id: 'd12', userId: 'demo', title: 'Internet Bill', amount: 60.00, category: 'utilities', date: iso(25), createdAt: ts(25) },
+    { id: 'd11', userId: 'demo', title: 'Amazon Purchase', amount: 65.00, category: 'other', date: iso(4), createdAt: ts(4) },
+    { id: 'd12', userId: 'demo', title: 'Internet Bill', amount: 60.00, category: 'other', date: iso(25), createdAt: ts(25) },
 ];
 
 // DEMO GOALS
