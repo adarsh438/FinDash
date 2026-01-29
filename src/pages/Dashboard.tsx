@@ -35,9 +35,9 @@ const Dashboard = () => {
             try {
                 await expenseService.setBudget(currentUser.uid, amount, 'monthly');
                 showToast(`Budget set to ${formatCurrency(amount)}`, 'success');
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
-                showToast("Failed to update budget", 'error');
+                showToast(`Failed to update budget: ${error.message || 'Unknown error'}`, 'error');
             }
         }
     }, [currentUser, budget, formatCurrency, showToast]);
@@ -65,13 +65,23 @@ const Dashboard = () => {
         };
     }, [currentUser]);
 
-    const totalIncome = expenses
-        .filter(e => e.category === 'income')
-        .reduce((sum, e) => sum + e.amount, 0);
+    const currentMonthStats = expenses.reduce((acc, expense) => {
+        const expenseDate = new Date(expense.date);
+        const isCurrentMonth = expenseDate.getMonth() === new Date().getMonth() &&
+            expenseDate.getFullYear() === new Date().getFullYear();
 
-    const totalExpenses = expenses
-        .filter(e => e.category !== 'income')
-        .reduce((sum, e) => sum + e.amount, 0);
+        if (expense.category === 'income') {
+            acc.totalIncomeAllTime += expense.amount; // Keep income all time? Or monthly? Usually monthly cash flow is better.
+            if (isCurrentMonth) acc.monthIncome += expense.amount;
+        } else {
+            acc.totalExpensesAllTime += expense.amount;
+            if (isCurrentMonth) acc.monthExpenses += expense.amount;
+        }
+        return acc;
+    }, { monthIncome: 0, monthExpenses: 0, totalIncomeAllTime: 0, totalExpensesAllTime: 0 });
+
+    const totalIncome = currentMonthStats.monthIncome;
+    const totalExpenses = currentMonthStats.monthExpenses;
 
     const balance = totalIncome - totalExpenses;
     const recentTransactions = expenses.slice(0, 5);
