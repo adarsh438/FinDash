@@ -96,7 +96,23 @@ const SafeToSpendWidget: React.FC<SafeToSpendWidgetProps> = ({
 
             <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Remaining: <span style={{ color: 'var(--text-primary)' }}>{formatCurrency(remainingBudget)}</span></span>
-                <span style={{ color: 'var(--text-secondary)' }}>Budget: <span style={{ color: 'var(--text-primary)' }}>{formatCurrency(budget.amount)}</span></span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                    Budget: <span style={{ color: 'var(--text-primary)', marginRight: '8px' }}>{formatCurrency(budget.amount)}</span>
+                    <button
+                        onClick={onSetBudget}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--accent-primary)',
+                            padding: 0,
+                            fontSize: '0.8rem',
+                            textDecoration: 'underline'
+                        }}
+                    >
+                        Edit
+                    </button>
+                </span>
             </div>
         </Card>
     );
