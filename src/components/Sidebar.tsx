@@ -1,9 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, Settings, CreditCard, Bot, Calendar, Target, Crown, LogOut } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, Settings, CreditCard, Bot, Calendar, Target, Crown, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
-const Sidebar = () => {
+interface SidebarProps {
+    isCollapsed: boolean;
+    toggleCollapse: () => void;
+}
+
+const Sidebar = ({ isCollapsed, toggleCollapse }: SidebarProps) => {
     const { currentUser, userProfile, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -16,61 +21,67 @@ const Sidebar = () => {
     const isPremium = userProfile?.isPremium;
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+            <button className="collapse-btn" onClick={toggleCollapse}>
+                {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            </button>
+
             <div className="brand">
                 <Wallet className="brand-icon" size={32} />
-                <span>FinDash</span>
+                {!isCollapsed && <span>FinDash</span>}
             </div>
 
             <nav className="nav-links">
-                <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Dashboard" : ""}>
                     <LayoutDashboard />
-                    <span>Dashboard</span>
+                    {!isCollapsed && <span>Dashboard</span>}
                 </NavLink>
-                <NavLink to="/expenses" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/expenses" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Expenses" : ""}>
                     <CreditCard />
-                    <span>Expenses</span>
+                    {!isCollapsed && <span>Expenses</span>}
                 </NavLink>
-                <NavLink to="/coach" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/coach" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "AI Coach" : ""}>
                     <Bot />
-                    <span>AI Coach</span>
+                    {!isCollapsed && <span>AI Coach</span>}
                 </NavLink>
-                <NavLink to="/bills" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/bills" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Bills" : ""}>
                     <Calendar />
-                    <span>Bills</span>
+                    {!isCollapsed && <span>Bills</span>}
                 </NavLink>
-                <NavLink to="/goals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/goals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Goals" : ""}>
                     <Target />
-                    <span>Goals</span>
+                    {!isCollapsed && <span>Goals</span>}
                 </NavLink>
-                <NavLink to="/premium" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ color: 'var(--accent-secondary)' }}>
+                <NavLink to="/premium" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ color: 'var(--accent-secondary)' }} title={isCollapsed ? "Go Premium" : ""}>
                     <Crown />
-                    <span>Go Premium</span>
+                    {!isCollapsed && <span>Go Premium</span>}
                 </NavLink>
 
                 <div style={{ height: '1px', background: 'var(--border-light)', margin: '1rem 0' }}></div>
 
-                <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Analytics" : ""}>
                     <PieChart />
-                    <span>Analytics</span>
+                    {!isCollapsed && <span>Analytics</span>}
                 </NavLink>
-                <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Settings" : ""}>
                     <Settings />
-                    <span>Settings</span>
+                    {!isCollapsed && <span>Settings</span>}
                 </NavLink>
             </nav>
 
             <div className="user-profile">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
                     <div className="avatar">
                         {displayName.charAt(0).toUpperCase()}
                     </div>
-                    <div className="user-info">
-                        <h4>{displayName}</h4>
-                        <p style={{ color: isPremium ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
-                            {isPremium ? 'Premium Member' : 'Free Plan'}
-                        </p>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="user-info">
+                            <h4>{displayName}</h4>
+                            <p style={{ color: isPremium ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
+                                {isPremium ? 'Premium Member' : 'Free Plan'}
+                            </p>
+                        </div>
+                    )}
                 </div>
                 <button
                     onClick={handleLogout}
@@ -97,7 +108,7 @@ const Sidebar = () => {
                     }}
                 >
                     <LogOut size={20} />
-                    {userProfile?.premiumSource === 'demo' && <span style={{ marginLeft: '8px', fontSize: '0.8rem', fontWeight: 500 }}>Exit</span>}
+                    {!isCollapsed && userProfile?.premiumSource === 'demo' && <span style={{ marginLeft: '8px', fontSize: '0.8rem', fontWeight: 500 }}>Exit</span>}
                 </button>
             </div>
         </aside>

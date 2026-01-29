@@ -1,15 +1,17 @@
 .app-layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .main-content {
     flex: 1;
     padding: var(--spacing-xl);
     overflow-y: auto;
-    max-width: 1600px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     width: 100%;
+    transition: margin-left 0.3s ease;
 }
 
 @media (max-width: 768px) {
