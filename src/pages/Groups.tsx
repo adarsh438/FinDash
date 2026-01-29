@@ -13,6 +13,7 @@ const Groups = () => {
 
     const [groupName, setGroupName] = useState('');
     const [totalAmount, setTotalAmount] = useState('');
+    const [upiId, setUpiId] = useState(''); // New state for UPI ID
     const [friends, setFriends] = useState<string[]>([]);
     const [newFriend, setNewFriend] = useState('');
     const [splitResult, setSplitResult] = useState<{ perPerson: number, upiLink: string } | null>(null);
@@ -30,6 +31,10 @@ const Groups = () => {
             showToast("Please enter a valid amount", "error");
             return;
         }
+        if (!upiId.includes('@')) {
+            showToast("Please enter a valid UPI ID (e.g. name@bank)", "error");
+            return;
+        }
         if (friends.length === 0) {
             showToast("Add at least one friend to split with", "error");
             return;
@@ -38,8 +43,8 @@ const Groups = () => {
         const totalPeople = friends.length + 1; // +1 for self
         const perPerson = amount / totalPeople;
 
-        // Generate dummy UPI link: upi://pay?pa=user@upi&pn=User&am=100.00
-        const upiLink = `upi://pay?pa=friend@upi&pn=Friend&am=${perPerson.toFixed(2)}&tn=${encodeURIComponent(groupName || 'Expense Split')}`;
+        // Generate UPI link with user's ID
+        const upiLink = `upi://pay?pa=${upiId}&pn=User&am=${perPerson.toFixed(2)}&tn=${encodeURIComponent(groupName || 'Expense Split')}`;
 
         setSplitResult({ perPerson, upiLink });
         showToast("Expense split calculated!", "success");
@@ -60,6 +65,12 @@ const Groups = () => {
                     </h3>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <Input
+                            label="Your UPI ID (to receive money)"
+                            placeholder="e.g. mobile@paytm"
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                        />
                         <Input
                             label="Group / Occasion Name"
                             placeholder="e.g. Goa Trip, Flat Rent"
