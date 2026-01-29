@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Smartphone, Globe } from 'lucide-react';
 import './Login.css';
 
 const Login = () => {
     const { loginWithGoogle, loginWithEmail, signupWithEmail, currentUser, loginAsDemo } = useAuth();
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     const [isLogin, setIsLogin] = React.useState(false);
     const [email, setEmail] = React.useState('');
@@ -19,16 +21,19 @@ const Login = () => {
         try {
             if (isLogin) {
                 await loginWithEmail(email, password);
+                showToast('Successfully logged in!', 'success');
             } else {
                 await signupWithEmail(email, password);
+                showToast('Account created successfully!', 'success');
             }
         } catch (error) {
             console.error("Auth error:", error);
-            alert("Authentication failed. Please check your credentials.");
+            showToast("Authentication failed. Please check your credentials.", 'error');
         } finally {
             setLoading(false);
         }
     };
+
 
     React.useEffect(() => {
         if (currentUser) {
@@ -57,7 +62,14 @@ const Login = () => {
                     </div>
 
                     <div className="google-login-section">
-                        <button className="google-btn" onClick={loginWithGoogle}>
+                        <button className="google-btn" onClick={async () => {
+                            try {
+                                await loginWithGoogle();
+                                showToast('Successfully logged in with Google!', 'success');
+                            } catch (e) {
+                                showToast('Google login failed.', 'error');
+                            }
+                        }}>
                             <span className="google-icon-wrapper">
                                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" height="18" />
                             </span>

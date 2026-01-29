@@ -51,18 +51,18 @@ const Dashboard = () => {
         return (
             <div className="dashboard-container">
                 <div className="dashboard-header">
-                    <Skeleton type="text" width={250} height={32} />
-                    <Skeleton type="text" width={350} height={20} style={{ marginTop: '0.5rem' }} />
+                    <Skeleton width={250} height={32} />
+                    <Skeleton width={350} height={20} style={{ marginTop: '0.5rem' }} />
                 </div>
 
                 <div className="stats-grid">
-                    <Skeleton type="rect" height={140} style={{ borderRadius: '16px' }} />
-                    <Skeleton type="rect" height={140} style={{ borderRadius: '16px' }} />
-                    <Skeleton type="rect" height={140} style={{ borderRadius: '16px' }} />
+                    <Skeleton height={140} style={{ borderRadius: '16px' }} />
+                    <Skeleton height={140} style={{ borderRadius: '16px' }} />
+                    <Skeleton height={140} style={{ borderRadius: '16px' }} />
                 </div>
 
                 <div className="recent-section">
-                    <Skeleton type="rect" height={250} style={{ borderRadius: '24px' }} />
+                    <Skeleton height={250} style={{ borderRadius: '24px' }} />
                 </div>
             </div>
         );
