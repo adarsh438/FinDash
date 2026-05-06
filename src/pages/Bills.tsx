@@ -1,132 +1,144 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
 import Card from '../components/Card';
+import PageHeader from '../components/PageHeader';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
+import UpgradeModal from '../components/UpgradeModal';
 import { useAuth } from '../context/AuthContext';
-import { expenseService } from '../services/expenseService';
+import { useExpenses } from '../context/ExpenseContext';
 import { billService, type RecurringBill } from '../services/billService';
 import { useCurrency } from '../context/CurrencyContext';
 import './Bills.css';
 
-import Button from '../components/Button';
-import UpgradeModal from '../components/UpgradeModal';
-
 const Bills = () => {
-    const { currentUser, userProfile } = useAuth();
+    const { userProfile } = useAuth();
     const { formatCurrency } = useCurrency();
-    // navigate removed
+    const { expenses } = useExpenses();
+    const [bills, setBills] = useState<RecurringBill[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
-    // Premium Check
-    // Premium Check
-    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    useEffect(() => {
+        if (!userProfile?.isPremium || expenses.length === 0) {
+            setLoading(false);
+            return;
+        }
+        const predicted = billService.predictBills(expenses);
+        setBills(predicted);
+        setLoading(false);
+    }, [expenses, userProfile]);
+
+    const getDaysDue = (date: Date) =>
+        Math.ceil((date.getTime() - Date.now()) / 86400000);
 
     if (!userProfile?.isPremium) {
         return (
-            <div style={{ padding: '2rem', textAlign: 'center', animation: 'fadeIn 0.5s ease-out', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Card style={{ padding: '3rem', maxWidth: '600px', margin: '0 auto' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <Calendar size={48} color="var(--accent-primary)" />
+            <div className="bills-page animate-fade-in">
+                <PageHeader
+                    title="Upcoming Bills"
+                    subtitle="Predicted recurring expenses based on your history."
+                    icon={<Calendar size={22} />}
+                />
+                <div className="bills-gate">
+                    <div className="bills-gate-card animate-fade-in-scale">
+                        <div className="gate-icon-wrap">
+                            <Lock size={28} />
+                        </div>
+                        <h2>Unlock Bill Predictions</h2>
+                        <p>See your upcoming recurring bills and never miss a payment again. Available for Premium users.</p>
+                        <Button onClick={() => setIsUpgradeOpen(true)} size="lg">
+                            Upgrade to Premium
+                        </Button>
                     </div>
-                    <h2>Unlock Bill Predictions</h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                        See your upcoming recurring bills and never miss a payment again.
-                        Available for Premium users.
-                    </p>
-                    <Button onClick={() => setIsUpgradeModalOpen(true)} variant="primary" style={{ justifyContent: 'center' }}>
-                        Upgrade to Premium
-                    </Button>
-                </Card>
-                <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+                </div>
+                <UpgradeModal isOpen={isUpgradeOpen} onClose={() => setIsUpgradeOpen(false)} />
             </div>
         );
     }
 
-    const [bills, setBills] = useState<RecurringBill[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!currentUser) return;
-
-        const unsubscribe = expenseService.subscribeToExpenses(currentUser.uid, (expenses) => {
-            const predicted = billService.predictBills(expenses);
-            setBills(predicted);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser]);
-
-    const getDaysDue = (date: Date) => {
-        const today = new Date();
-        const diff = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        return diff;
-    };
-
     return (
-        <div className="bills-container">
-            <div className="bills-header">
-                <div>
-                    <h1>Upcoming Bills</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Predicted recurring expenses based on your history.</p>
-                </div>
-                <div className="header-icon-wrapper">
-                    <Calendar size={24} color="var(--accent-primary)" />
-                </div>
-            </div>
+        <div className="bills-page animate-fade-in">
+            <PageHeader
+                title="Upcoming Bills"
+                subtitle="Predicted recurring expenses based on your history."
+                icon={<Calendar size={22} />}
+            />
 
-            <div className="bills-list">
-                {loading ? (
-                    <p style={{ color: 'var(--text-secondary)' }}>Analyzing expenses...</p>
-                ) : bills.length === 0 ? (
-                    <Card style={{ textAlign: 'center', padding: '3rem' }}>
-                        <Clock size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                        <h3>No recurring bills detected yet</h3>
-                        <p style={{ color: 'var(--text-secondary)' }}>
-                            Add more expenses like "Netflix", "Rent", or "Internet" monthly, and I'll start predicting them here.
-                        </p>
-                    </Card>
-                ) : (
-                    bills.map((bill) => {
+            {loading ? (
+                <p className="bills-loading">Analyzing your expense history...</p>
+            ) : bills.length === 0 ? (
+                <Card>
+                    <EmptyState
+                        icon={<Clock size={32} />}
+                        title="No recurring bills detected"
+                        description="Add recurring expenses like Netflix or Rent monthly and I'll start predicting them here."
+                    />
+                </Card>
+            ) : (
+                <div className="bills-list stagger-children">
+                    {bills.map(bill => {
                         const daysDue = getDaysDue(bill.nextDueDate);
                         const isOverdue = daysDue < 0;
-                        const isSoon = daysDue <= 3 && daysDue >= 0;
+                        const isSoon = daysDue >= 0 && daysDue <= 3;
+                        const statusColor = isOverdue ? 'var(--accent-danger)'
+                            : isSoon ? 'var(--accent-warning)'
+                            : 'var(--accent-success)';
 
                         return (
-                            <Card key={bill.id} className="bill-card" style={{ borderLeft: isOverdue ? '4px solid var(--accent-danger)' : isSoon ? '4px solid var(--accent-warning)' : '4px solid var(--accent-success)' }}>
-                                <div className="bill-info">
-                                    <div className="bill-title-row">
-                                        <h3>{bill.title}</h3>
-                                        {isOverdue && <span className="badge danger">Overdue</span>}
-                                        {isSoon && <span className="badge warning">Due Soon</span>}
-                                    </div>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                        Usually ~{formatCurrency(bill.averageAmount)} • Monthly
-                                    </p>
-                                </div>
+                            <Card key={bill.id} className="bill-card flat">
+                                <div className="bill-status-bar"
+                                    style={{ backgroundColor: statusColor }} />
 
-                                <div className="bill-date">
-                                    <div className="date-box">
-                                        <span className="month">{bill.nextDueDate.toLocaleDateString('en-US', { month: 'short' })}</span>
-                                        <span className="day">{bill.nextDueDate.getDate()}</span>
+                                <div className="bill-content">
+                                    <div className="bill-left">
+                                        <div className="bill-icon-wrap" style={{ color: statusColor }}>
+                                            {isOverdue ? <AlertTriangle size={20} />
+                                                : isSoon ? <Clock size={20} />
+                                                : <CheckCircle size={20} />}
+                                        </div>
+                                        <div>
+                                            <h3 className="bill-title">{bill.title}</h3>
+                                            <p className="bill-meta">
+                                                ~{formatCurrency(bill.averageAmount)} monthly
+                                                {' · '}
+                                                <span style={{
+                                                    color: bill.confidence > 0.8 ? 'var(--accent-success)' : 'var(--accent-warning)'
+                                                }}>
+                                                    {Math.round(bill.confidence * 100)}% confident
+                                                </span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="days-remaining" style={{ color: isOverdue ? 'var(--accent-danger)' : 'var(--text-primary)' }}>
-                                        {isOverdue ? `${Math.abs(daysDue)} days ago` : daysDue === 0 ? 'Today' : `${daysDue} days left`}
-                                    </div>
-                                    <div className="confidence-badge" style={{
-                                        fontSize: '0.75rem',
-                                        marginTop: '0.5rem',
-                                        color: bill.confidence > 0.8 ? 'var(--accent-success)' : 'var(--accent-warning)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                    }}>
-                                        {bill.confidence > 0.8 ? '🔒' : '⚠️'} {Math.round(bill.confidence * 100)}% confidence
+
+                                    <div className="bill-right">
+                                        <div className="bill-date-box">
+                                            <span className="bill-month">
+                                                {bill.nextDueDate.toLocaleDateString('en-US', { month: 'short' })}
+                                            </span>
+                                            <span className="bill-day">{bill.nextDueDate.getDate()}</span>
+                                        </div>
+                                        <div className="bill-days" style={{ color: statusColor }}>
+                                            {isOverdue ? `${Math.abs(daysDue)}d ago`
+                                                : daysDue === 0 ? 'Today'
+                                                : `${daysDue}d left`}
+                                        </div>
+                                        {(isOverdue || isSoon) && (
+                                            <span className="bill-badge" style={{
+                                                backgroundColor: `${statusColor}20`,
+                                                color: statusColor,
+                                                borderColor: `${statusColor}30`
+                                            }}>
+                                                {isOverdue ? 'Overdue' : 'Due Soon'}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </Card>
                         );
-                    })
-                )}
-            </div>
+                    })}
+                </div>
+            )}
         </div>
     );
 };

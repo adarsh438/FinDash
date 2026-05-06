@@ -6,26 +6,82 @@
 
 .main-content {
     flex: 1;
-    padding: var(--spacing-xl);
     overflow-y: auto;
-    max-width: 100%;
-    margin: 0;
-    width: 100%;
-    transition: margin-left 0.3s ease;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    transition: none;
 }
 
+.page-content {
+    flex: 1;
+    padding: var(--spacing-xl) var(--spacing-2xl);
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Mobile header — hidden on desktop */
+.mobile-header {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    background: rgba(12,12,18,0.95);
+    border-bottom: 1px solid var(--border-light);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.mobile-menu-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    background: var(--surface-light);
+    transition: all var(--transition-fast);
+}
+
+.mobile-menu-btn:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+}
+
+.mobile-brand {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        transform: translateX(-100%);
-        z-index: 100;
+    .mobile-header {
+        display: flex;
     }
 
-    .sidebar.open {
-        transform: translateX(0);
-    }
-
-    .main-content {
+    .page-content {
         padding: var(--spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .page-content {
+        padding: var(--spacing-sm);
+    }
+}
+
+@media (min-width: 1600px) {
+    .page-content {
+        padding: var(--spacing-2xl);
     }
 }

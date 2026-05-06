@@ -1,16 +1,38 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, Settings, CreditCard, Bot, Calendar, Target, Crown, LogOut, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
+    LayoutDashboard, Wallet, PieChart, Settings, CreditCard,
+    Bot, Calendar, Target, Crown, LogOut, ChevronLeft, ChevronRight,
+    Users, ArrowLeftRight
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
 interface SidebarProps {
     isCollapsed: boolean;
     toggleCollapse: () => void;
+    isMobileOpen: boolean;
+    toggleMobile: () => void;
 }
 
-const Sidebar = ({ isCollapsed, toggleCollapse }: SidebarProps) => {
+const NAV_ITEMS = [
+    { to: '/',            icon: LayoutDashboard, label: 'Dashboard'  },
+    { to: '/expenses',    icon: CreditCard,      label: 'Expenses'   },
+    { to: '/transactions',icon: ArrowLeftRight,  label: 'Transactions'},
+    { to: '/groups',      icon: Users,           label: 'Groups'     },
+    { to: '/coach',       icon: Bot,             label: 'AI Coach'   },
+    { to: '/bills',       icon: Calendar,        label: 'Bills'      },
+    { to: '/goals',       icon: Target,          label: 'Goals'      },
+];
+
+const BOTTOM_ITEMS = [
+    { to: '/analytics', icon: PieChart,  label: 'Analytics' },
+    { to: '/settings',  icon: Settings,  label: 'Settings'  },
+];
+
+const Sidebar = ({ isCollapsed, toggleCollapse, isMobileOpen, toggleMobile }: SidebarProps) => {
     const { currentUser, userProfile, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = async () => {
         await logout();
@@ -18,104 +40,106 @@ const Sidebar = ({ isCollapsed, toggleCollapse }: SidebarProps) => {
     };
 
     const displayName = userProfile?.displayName || currentUser?.displayName || 'User';
+    const initials = displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
     const isPremium = userProfile?.isPremium;
 
+    const isExact = (path: string) =>
+        path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+
     return (
-        <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-            <button className="collapse-btn" onClick={toggleCollapse}>
-                {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-            </button>
+        <>
+            {/* Mobile overlay */}
+            {isMobileOpen && (
+                <div className="sidebar-overlay" onClick={toggleMobile} />
+            )}
 
-            <div className="brand">
-                <Wallet className="brand-icon" size={32} />
-                {!isCollapsed && <span>FinDash</span>}
-            </div>
+            <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
+                {/* Collapse toggle — desktop only */}
+                <button className="collapse-btn" onClick={toggleCollapse} title={isCollapsed ? 'Expand' : 'Collapse'}>
+                    {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
 
-            <nav className="nav-links">
-                <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Dashboard" : ""}>
-                    <LayoutDashboard />
-                    {!isCollapsed && <span>Dashboard</span>}
-                </NavLink>
-                <NavLink to="/expenses" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Expenses" : ""}>
-                    <CreditCard />
-                    {!isCollapsed && <span>Expenses</span>}
-                </NavLink>
-                <NavLink to="/groups" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Groups" : ""}>
-                    <Users />
-                    {!isCollapsed && <span>Groups</span>}
-                </NavLink>
-                <NavLink to="/coach" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "AI Coach" : ""}>
-                    <Bot />
-                    {!isCollapsed && <span>AI Coach</span>}
-                </NavLink>
-                <NavLink to="/bills" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Bills" : ""}>
-                    <Calendar />
-                    {!isCollapsed && <span>Bills</span>}
-                </NavLink>
-                <NavLink to="/goals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Goals" : ""}>
-                    <Target />
-                    {!isCollapsed && <span>Goals</span>}
-                </NavLink>
-                <NavLink to="/premium" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} style={{ color: 'var(--accent-secondary)' }} title={isCollapsed ? "Go Premium" : ""}>
-                    <Crown />
-                    {!isCollapsed && <span>Go Premium</span>}
-                </NavLink>
+                {/* Brand */}
+                <div className="sidebar-brand">
+                    <div className="brand-logo">
+                        <Wallet size={20} />
+                    </div>
+                    {!isCollapsed && <span className="brand-name">FinDash</span>}
+                </div>
 
-                <div style={{ height: '1px', background: 'var(--border-light)', margin: '1rem 0' }}></div>
+                {/* Main nav */}
+                <nav className="nav-section">
+                    {!isCollapsed && <span className="nav-section-label">Main</span>}
+                    {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+                        <NavLink
+                            key={to}
+                            to={to}
+                            end={to === '/'}
+                            className={`nav-item ${isExact(to) ? 'active' : ''}`}
+                            title={isCollapsed ? label : ''}
+                            onClick={() => isMobileOpen && toggleMobile()}
+                        >
+                            <Icon size={18} />
+                            {!isCollapsed && <span>{label}</span>}
+                        </NavLink>
+                    ))}
+                </nav>
 
-                <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Analytics" : ""}>
-                    <PieChart />
-                    {!isCollapsed && <span>Analytics</span>}
-                </NavLink>
-                <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} title={isCollapsed ? "Settings" : ""}>
-                    <Settings />
-                    {!isCollapsed && <span>Settings</span>}
-                </NavLink>
-            </nav>
+                {/* Premium CTA */}
+                {!isPremium && (
+                    <NavLink
+                        to="/premium"
+                        className={`nav-item premium-cta ${isExact('/premium') ? 'active' : ''}`}
+                        title={isCollapsed ? 'Go Premium' : ''}
+                        onClick={() => isMobileOpen && toggleMobile()}
+                    >
+                        <Crown size={18} />
+                        {!isCollapsed && <span>Go Premium</span>}
+                    </NavLink>
+                )}
 
-            <div className="user-profile">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
-                    <div className="avatar">
-                        {displayName.charAt(0).toUpperCase()}
+                <div className="nav-divider" />
+
+                {/* Bottom nav */}
+                <nav className="nav-section">
+                    {!isCollapsed && <span className="nav-section-label">More</span>}
+                    {BOTTOM_ITEMS.map(({ to, icon: Icon, label }) => (
+                        <NavLink
+                            key={to}
+                            to={to}
+                            className={`nav-item ${isExact(to) ? 'active' : ''}`}
+                            title={isCollapsed ? label : ''}
+                            onClick={() => isMobileOpen && toggleMobile()}
+                        >
+                            <Icon size={18} />
+                            {!isCollapsed && <span>{label}</span>}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                {/* User profile */}
+                <div className={`user-profile ${isCollapsed ? 'collapsed' : ''}`}>
+                    <div className="avatar" title={displayName}>
+                        {initials}
                     </div>
                     {!isCollapsed && (
                         <div className="user-info">
-                            <h4>{displayName}</h4>
-                            <p style={{ color: isPremium ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
-                                {isPremium ? 'Premium Member' : 'Free Plan'}
+                            <h4 className="user-name">{displayName}</h4>
+                            <p className="user-plan" style={{ color: isPremium ? 'var(--accent-secondary)' : 'var(--text-muted)' }}>
+                                {isPremium ? '✦ Premium' : 'Free Plan'}
                             </p>
                         </div>
                     )}
+                    <button
+                        className="logout-btn"
+                        onClick={handleLogout}
+                        title={userProfile?.premiumSource === 'demo' ? 'Exit Demo' : 'Log Out'}
+                    >
+                        <LogOut size={16} />
+                    </button>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        padding: '0.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'color 0.2s',
-                        borderRadius: '8px'
-                    }}
-                    title={userProfile?.premiumSource === 'demo' ? "Exit Demo Mode" : "Log Out"}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.color = 'var(--accent-danger)';
-                        e.currentTarget.style.background = 'rgba(255, 59, 48, 0.1)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                        e.currentTarget.style.background = 'none';
-                    }}
-                >
-                    <LogOut size={20} />
-                    {!isCollapsed && userProfile?.premiumSource === 'demo' && <span style={{ marginLeft: '8px', fontSize: '0.8rem', fontWeight: 500 }}>Exit</span>}
-                </button>
-            </div>
-        </aside>
+            </aside>
+        </>
     );
 };
 

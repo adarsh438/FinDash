@@ -1,163 +1,163 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User as UserIcon } from 'lucide-react';
-import Card from '../components/Card';
-import Input from '../components/Input';
+import { Send, Bot, User as UserIcon, Sparkles } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
-import { useAuth } from '../context/AuthContext';
-import { expenseService, type Expense } from '../services/expenseService';
-import { aiService, type ChatMessage } from '../services/aiService';
 import UpgradeModal from '../components/UpgradeModal';
+import { useAuth } from '../context/AuthContext';
+import { useExpenses } from '../context/ExpenseContext';
+import { aiService, type ChatMessage } from '../services/aiService';
 import './AICoach.css';
 
+const PROMPT_CHIPS = [
+    'How am I doing this month?',
+    'Where am I overspending?',
+    'How can I save more?',
+    'What\'s my biggest expense?',
+];
+
 const AICoach = () => {
-    const { currentUser, userProfile } = useAuth();
-    // navigate removed
-
-    // ... existing state ...
-
-    // Premium Check
-    // Premium Check
-    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-
-    // If just checking loading state...
-    // logic below
-
-    // We can keep the "return" logic but make it a nice overlay similar to Analytics
-    // But since `AICoach.tsx` currently returns early, let's keep that structure but use the Modal.
-
-    // TEASER MODE: Allow access but intercept messages
+    const { userProfile } = useAuth();
+    const { expenses } = useExpenses();
     const isPremium = userProfile?.isPremium;
+    const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
-    // ... existing implementation ...
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        {
-            id: 'init',
-            text: isPremium
-                ? "Hi! I'm your AI Finance Coach. Ask me about your spending, trends, or savings!"
-                : "Hi! I'm your AI Finance Coach. I can analyze your transactions and find hidden savings. Ask me 'How am I doing?' to see what I can do!",
-            sender: 'ai',
-            timestamp: new Date()
-        }
-    ]);
+    const [messages, setMessages] = useState<ChatMessage[]>([{
+        id: 'init',
+        text: isPremium
+            ? "Hi! I'm your AI Finance Coach. Ask me anything about your spending, trends, or savings goals!"
+            : "Hi! I'm your AI Finance Coach. I can analyze your transactions and provide personalized insights. Try asking me a question below!",
+        sender: 'ai',
+        timestamp: new Date()
+    }]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Load recent expenses for context
     useEffect(() => {
-        if (!currentUser) return;
-        const unsubscribe = expenseService.subscribeToExpenses(currentUser.uid, (data) => {
-            setRecentExpenses(data);
-        });
-        return () => unsubscribe();
-    }, [currentUser]);
-
-    // Auto-scroll to bottom
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    const handleSend = async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        if (!inputValue.trim()) return;
+    const handleSend = async (text?: string) => {
+        const msg = (text || inputValue).trim();
+        if (!msg) return;
 
         const userMsg: ChatMessage = {
-            id: Date.now().toString(),
-            text: inputValue,
-            sender: 'user',
-            timestamp: new Date()
+            id: Date.now().toString(), text: msg,
+            sender: 'user', timestamp: new Date()
         };
-
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
 
-        // FREE USER INTERCEPTION
         if (!isPremium) {
             setTimeout(() => {
                 setIsTyping(false);
-                const teaserMsg: ChatMessage = {
+                setMessages(prev => [...prev, {
                     id: (Date.now() + 1).toString(),
-                    text: "🔒 I've analyzed your recent transactions and found 3 key insights about your spending trends. Upgrade to Premium to unlock your full financial report and personalized savings advice!",
-                    sender: 'ai',
-                    timestamp: new Date()
-                };
-                setMessages(prev => [...prev, teaserMsg]);
-                setIsUpgradeModalOpen(true);
-            }, 1000);
+                    text: "🔒 I've analyzed your recent transactions and found key insights about your spending patterns. Upgrade to Premium to unlock your full financial report and personalized advice!",
+                    sender: 'ai', timestamp: new Date()
+                }]);
+                setIsUpgradeOpen(true);
+            }, 1200);
             return;
         }
 
         try {
-            const aiResponseText = await aiService.generateResponse(userMsg.text, { expenses: recentExpenses });
-
-            const aiMsg: ChatMessage = {
+            const response = await aiService.generateResponse(msg, { expenses });
+            setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
-                text: aiResponseText,
-                sender: 'ai',
-                timestamp: new Date()
-            };
-            setMessages(prev => [...prev, aiMsg]);
-        } catch (error) {
-            console.error("AI Error:", error);
-            // Optional: Error message
+                text: response, sender: 'ai', timestamp: new Date()
+            }]);
+        } catch {
+            setMessages(prev => [...prev, {
+                id: (Date.now() + 1).toString(),
+                text: "Sorry, I couldn't process that. Please try again.",
+                sender: 'ai', timestamp: new Date()
+            }]);
         } finally {
-            // Only stop typing if we didn't hit the free user block (which handles it manually)
-            if (isPremium) setIsTyping(false);
+            setIsTyping(false);
         }
     };
 
-    return (
-        <div className="coach-container">
-            <div className="coach-header">
-                <div>
-                    <h1>AI Finance Coach</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Your smart assistant for financial wisdom.</p>
-                </div>
-                <div style={{ background: 'var(--accent-gradient)', padding: '0.5rem', borderRadius: '50%' }}>
-                    <Bot size={24} color="white" />
-                </div>
-            </div>
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    };
 
-            <Card className="chat-window">
-                <div className="messages-list">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={`message-wrapper ${msg.sender}`}>
+    return (
+        <div className="coach-page animate-fade-in">
+            <PageHeader
+                title="AI Finance Coach"
+                subtitle="Your smart assistant for financial wisdom."
+                icon={<Bot size={22} />}
+            />
+
+            {!isPremium && (
+                <div className="coach-premium-notice">
+                    <Sparkles size={14} />
+                    <span>You're on the free plan. <button onClick={() => setIsUpgradeOpen(true)}>Upgrade to Premium</button> for full AI access.</span>
+                </div>
+            )}
+
+            <div className="coach-chat-container">
+                {/* Messages */}
+                <div className="messages-area">
+                    {messages.map(msg => (
+                        <div key={msg.id} className={`message-row ${msg.sender}`}>
                             <div className="message-avatar">
-                                {msg.sender === 'ai' ? <Bot size={18} /> : <UserIcon size={18} />}
+                                {msg.sender === 'ai' ? <Bot size={16} /> : <UserIcon size={16} />}
                             </div>
                             <div className="message-bubble">
-                                {msg.text}
+                                <p>{msg.text}</p>
+                                <span className="message-time">
+                                    {msg.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
                             </div>
                         </div>
                     ))}
 
                     {isTyping && (
-                        <div className="message-wrapper ai">
-                            <div className="message-avatar"><Bot size={18} /></div>
-                            <div className="message-bubble typing-indicator">
-                                <span>•</span><span>•</span><span>•</span>
+                        <div className="message-row ai">
+                            <div className="message-avatar"><Bot size={16} /></div>
+                            <div className="message-bubble typing">
+                                <span className="dot" /><span className="dot" /><span className="dot" />
                             </div>
                         </div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
 
-                <form className="chat-input-area" onSubmit={handleSend}>
-                    <Input
-                        placeholder="Ask about your spending..."
+                {/* Prompt chips */}
+                <div className="prompt-chips">
+                    {PROMPT_CHIPS.map(chip => (
+                        <button key={chip} className="prompt-chip"
+                            onClick={() => handleSend(chip)}>
+                            {chip}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Input */}
+                <div className="coach-input-area">
+                    <textarea
+                        className="coach-textarea"
+                        placeholder="Ask about your finances..."
                         value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        style={{ marginBottom: 0 }}
+                        onChange={e => setInputValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        rows={1}
                     />
-                    <Button type="submit" disabled={!inputValue.trim() || isTyping} icon={<Send size={18} />}>
+                    <Button
+                        icon={<Send size={16} />}
+                        onClick={() => handleSend()}
+                        disabled={!inputValue.trim() || isTyping}
+                        size="sm"
+                    >
                         Send
                     </Button>
-                </form>
-            </Card>
+                </div>
+            </div>
 
-            <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+            <UpgradeModal isOpen={isUpgradeOpen} onClose={() => setIsUpgradeOpen(false)} />
         </div>
     );
 };

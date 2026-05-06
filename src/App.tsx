@@ -1,55 +1,57 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext'; // Import hook to check auth
+import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ExpenseProvider } from './context/ExpenseContext';
 import { ToastContainer } from './components/ToastContainer';
 import ErrorBoundary from './components/ErrorBoundary';
-import Login from './pages/Login'; // Keep Login eager for faster initial load
+import Login from './pages/Login';
 import Layout from './components/Layout';
 import OnboardingTour from './components/OnboardingTour';
 
 // Lazy load pages for performance
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Expenses = lazy(() => import('./pages/Expenses'));
+const Dashboard    = lazy(() => import('./pages/Dashboard'));
+const Expenses     = lazy(() => import('./pages/Expenses'));
 const Transactions = lazy(() => import('./pages/Transactions'));
-const AICoach = lazy(() => import('./pages/AICoach'));
-const Bills = lazy(() => import('./pages/Bills'));
-const Goals = lazy(() => import('./pages/Goals'));
-const Paywall = lazy(() => import('./pages/Paywall'));
-const Analytics = lazy(() => import('./pages/Analytics'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Groups = lazy(() => import('./pages/Groups'));
+const AICoach      = lazy(() => import('./pages/AICoach'));
+const Bills        = lazy(() => import('./pages/Bills'));
+const Goals        = lazy(() => import('./pages/Goals'));
+const Paywall      = lazy(() => import('./pages/Paywall'));
+const Analytics    = lazy(() => import('./pages/Analytics'));
+const Settings     = lazy(() => import('./pages/Settings'));
+const Groups       = lazy(() => import('./pages/Groups'));
 
-// Loading Fallback
+// Premium loading spinner
 const PageLoader = () => (
   <div style={{
-    height: '100vh',
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#0f172a',
-    color: '#94a3b8'
+    height: '100vh', width: '100%',
+    display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    background: 'var(--bg-dark, #050507)',
+    gap: '1rem'
   }}>
-    <div className="loader">Loading...</div>
+    <div style={{
+      width: 40, height: 40, borderRadius: '50%',
+      border: '3px solid rgba(99,102,241,0.2)',
+      borderTopColor: '#6366f1',
+      animation: 'spin 0.8s linear infinite'
+    }} />
+    <p style={{ color: '#475569', fontSize: '0.875rem' }}>Loading FinDash...</p>
   </div>
 );
 
-// ProtectedRoute component
+// ProtectedRoute — wraps authed routes with ExpenseProvider (single Firestore listener)
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, loading } = useAuth();
 
   if (loading) return <PageLoader />;
-
-  if (!currentUser) {
-    return <Navigate to="/login" />;
-  }
+  if (!currentUser) return <Navigate to="/login" />;
 
   return (
-    <>
+    <ExpenseProvider>
       <OnboardingTour />
       {children}
-    </>
+    </ExpenseProvider>
   );
 };
 
@@ -67,21 +69,21 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<Dashboard />} />
-              <Route path="expenses" element={<Expenses />} />
+              <Route path="expenses"     element={<Expenses />} />
               <Route path="transactions" element={<Transactions />} />
-              <Route path="groups" element={<Groups />} />
-              <Route path="coach" element={<AICoach />} />
-              <Route path="bills" element={<Bills />} />
-              <Route path="goals" element={<Goals />} />
-              <Route path="premium" element={<Paywall />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="settings" element={<Settings />} />
+              <Route path="groups"       element={<Groups />} />
+              <Route path="coach"        element={<AICoach />} />
+              <Route path="bills"        element={<Bills />} />
+              <Route path="goals"        element={<Goals />} />
+              <Route path="premium"      element={<Paywall />} />
+              <Route path="analytics"    element={<Analytics />} />
+              <Route path="settings"     element={<Settings />} />
             </Route>
           </Routes>
         </Suspense>
       </ToastProvider>
     </ErrorBoundary>
-  )
+  );
 }
 
-export default App
+export default App;

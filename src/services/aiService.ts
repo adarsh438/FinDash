@@ -107,15 +107,13 @@ export const aiService = {
             return response;
         }
 
-        // CATEGORY ANALYSIS
-        if (lowerMsg.includes('category') || lowerMsg.includes('where')) {
-            if (!health.highestCategory) return "I need more data to spot category trends.";
+        // SAVINGS & INVESTMENT ADVICE (Prioritized)
+        if (lowerMsg.includes('save') || lowerMsg.includes('saving') || lowerMsg.includes('invest') || lowerMsg.includes('profit')) {
+            // Specific investment advice
+            if (lowerMsg.includes('invest') || lowerMsg.includes('profit')) {
+                return "For students and beginners, low-risk investments are best. Consider: 1. **Index Funds/SIPs** (for long-term growth), 2. **Recurring Deposits (RD)** (safe & steady), or 3. **Digital Gold**. *Always do your own research before investing!*";
+            }
 
-            return `Your top spending category is **${health.highestCategory.name}** at ₹${health.highestCategory.amount.toFixed(0)}. This makes up about ${((health.highestCategory.amount / health.totalSpent) * 100).toFixed(0)}% of your total outflows.`;
-        }
-
-        // SAVINGS ADVICE
-        if (lowerMsg.includes('save') || lowerMsg.includes('saving') || lowerMsg.includes('invest')) {
             if (health.savingsRateEstimate < 10) {
                 return "Based on your spending, your estimated savings rate is a bit tight (< 10%). Try the 50/30/20 rule: Aim to save at least 20% of your income. Cutting down on your top category might help!";
             } else if (health.savingsRateEstimate > 30) {
@@ -125,8 +123,15 @@ export const aiService = {
             }
         }
 
+        // CATEGORY ANALYSIS
+        if (lowerMsg.includes('category') || (lowerMsg.includes('where') && lowerMsg.includes('money')) || lowerMsg.includes('spent on')) {
+            if (!health.highestCategory) return "I need more data to spot category trends.";
+
+            return `Your top spending category is **${health.highestCategory.name}** at ₹${health.highestCategory.amount.toFixed(0)}. This makes up about ${((health.highestCategory.amount / health.totalSpent) * 100).toFixed(0)}% of your total outflows.`;
+        }
+
         // ANALYSIS / OBSERVATION
-        if (lowerMsg.includes('analyze') || lowerMsg.includes('analysis') || lowerMsg.includes('insight')) {
+        if (lowerMsg.includes('analyze') || lowerMsg.includes('analysis') || lowerMsg.includes('insight') || lowerMsg.includes('doing')) {
             const tips = [
                 health.highestCategory ? `Pro Tip: You spent ₹${health.highestCategory.amount.toFixed(0)} on ${health.highestCategory.name}. Reducing this by just 10% could save you ₹${(health.highestCategory.amount * 0.1).toFixed(0)}.` : "Track more expenses to get specific category tips.",
                 "I noticed your transaction frequency is higher on weekends. Watch out for 'impulse buys' on Saturdays!",

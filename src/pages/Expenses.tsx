@@ -1,244 +1,246 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { CreditCard, Plus, Search, Filter, Trash2, HelpCircle, Coffee, Home, Bus, BookOpen, Tv, DollarSign } from 'lucide-react';
 import Card from '../components/Card';
-import { useAuth } from '../context/AuthContext';
-import { expenseService, type Expense } from '../services/expenseService';
-import { useCurrency } from '../context/CurrencyContext';
-// Reuse dashboard css for simplicity or create new one if needed
-import './Dashboard.css';
-import { Coffee, Home, DollarSign, HelpCircle, ArrowUp, Plus, Bus, BookOpen, Tv } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
+import EmptyState from '../components/EmptyState';
+import DonutChart from '../components/DonutChart';
+import { useAuth } from '../context/AuthContext';
+import { useExpenses } from '../context/ExpenseContext';
+import { expenseService, type ExpenseCategory } from '../services/expenseService';
+import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
+import './Expenses.css';
 
-const CATEGORY_ICONS: Record<string, any> = {
-    food: Coffee,
-    rent_hostel: Home,
-    travel: Bus,
-    subscriptions: Tv,
-    study_materials: BookOpen,
-    income: DollarSign,
-    other: HelpCircle
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-    food: 'var(--accent-warning)',
-    rent_hostel: '#8b5cf6',
-    travel: '#06b6d4',
-    subscriptions: '#ec4899',
-    study_materials: '#f472b6',
-    income: 'var(--accent-success)',
-    other: 'var(--text-secondary)'
-};
+const CATEGORIES: { value: ExpenseCategory; label: string; icon: any; color: string }[] = [
+    { value: 'food',            label: 'Food',           icon: Coffee,    color: '#f59e0b' },
+    { value: 'rent_hostel',     label: 'Rent / Hostel',  icon: Home,      color: '#8b5cf6' },
+    { value: 'travel',          label: 'Travel',         icon: Bus,       color: '#06b6d4' },
+    { value: 'subscriptions',   label: 'Subscriptions',  icon: Tv,        color: '#ec4899' },
+    { value: 'study_materials', label: 'Study',          icon: BookOpen,  color: '#f472b6' },
+    { value: 'income',          label: 'Income',         icon: DollarSign,color: '#10b981' },
+    { value: 'other',           label: 'Other',          icon: HelpCircle,color: '#64748b' },
+];
 
 const Expenses = () => {
     const { currentUser } = useAuth();
     const { formatCurrency } = useCurrency();
     const { showToast } = useToast();
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { expenses, loading, deleteExpense } = useExpenses();
 
-    // Modal & Form State
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const [filterCat, setFilterCat] = useState<string>('all');
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('food');
+    const [category, setCategory] = useState<ExpenseCategory>('food');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    useEffect(() => {
-        if (!currentUser) return;
-
-        const unsubscribe = expenseService.subscribeToExpenses(currentUser.uid, (data) => {
-            setExpenses(data);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentUser) return;
-
         setIsSubmitting(true);
         try {
             await expenseService.addExpense(currentUser.uid, {
-                title,
-                amount: parseFloat(amount),
-                category: category as any,
-                date: new Date().toISOString().split('T')[0]
+                title, amount: parseFloat(amount), category, date
             });
             setIsModalOpen(false);
-            showToast("Expense added successfully", "success");
-            // Reset form
-            setTitle('');
-            setAmount('');
-            setCategory('food');
-        } catch (error: any) {
-            console.error("Failed to add expense", error);
-            showToast(error.message || "Failed to add expense", "error");
+            showToast('Expense added!', 'success');
+            setTitle(''); setAmount(''); setCategory('food');
+            setDate(new Date().toISOString().split('T')[0]);
+        } catch (err: any) {
+            showToast(err.message || 'Failed to add expense', 'error');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Calculate Category Totals
-    const categoryTotals = expenses
-        .filter(e => e.category !== 'income')
-        .reduce((acc, curr) => {
-            const cat = curr.category;
-            acc[cat] = (acc[cat] || 0) + curr.amount;
-            return acc;
-        }, {} as Record<string, number>);
+    const filtered = useMemo(() => {
+        return expenses.filter(e => {
+            const matchSearch = !search || e.title.toLowerCase().includes(search.toLowerCase());
+            const matchCat = filterCat === 'all' || e.category === filterCat;
+            return matchSearch && matchCat;
+        });
+    }, [expenses, search, filterCat]);
+
+    const categoryTotals = useMemo(() => {
+        return expenses
+            .filter(e => e.category !== 'income')
+            .reduce((acc, e) => {
+                acc[e.category] = (acc[e.category] || 0) + e.amount;
+                return acc;
+            }, {} as Record<string, number>);
+    }, [expenses]);
 
     const totalSpent = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
 
-    const sortedCategories = Object.entries(categoryTotals)
-        .sort(([, a], [, b]) => b - a);
+    const donutSegments = Object.entries(categoryTotals)
+        .sort(([, a], [, b]) => b - a)
+        .map(([cat, val]) => {
+            const catDef = CATEGORIES.find(c => c.value === cat);
+            return { value: val, color: catDef?.color || '#64748b', label: catDef?.label || cat };
+        });
 
     return (
-        <div style={{ animation: 'fadeIn 0.5s ease-out', paddingBottom: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Expense Analysis</h1>
-                <Button onClick={() => setIsModalOpen(true)} icon={<Plus size={18} />}>
-                    Add Expense
-                </Button>
+        <div className="expenses-page animate-fade-in">
+            <PageHeader
+                title="Expense Analysis"
+                subtitle="Track where your money goes."
+                icon={<CreditCard size={22} />}
+                action={
+                    <Button icon={<Plus size={16} />} onClick={() => setIsModalOpen(true)}>
+                        Add Expense
+                    </Button>
+                }
+            />
+
+            {/* Filters */}
+            <div className="expenses-filters">
+                <div className="search-bar">
+                    <Search size={16} />
+                    <input
+                        className="search-input"
+                        placeholder="Search expenses..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+                <div className="category-chips">
+                    <button
+                        className={`cat-chip ${filterCat === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterCat('all')}
+                    >All</button>
+                    {CATEGORIES.map(c => (
+                        <button
+                            key={c.value}
+                            className={`cat-chip ${filterCat === c.value ? 'active' : ''}`}
+                            style={filterCat === c.value ? { borderColor: c.color, color: c.color } : {}}
+                            onClick={() => setFilterCat(c.value)}
+                        >
+                            {c.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {loading ? <p>Loading...</p> : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                    <Card>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                            <div style={{ padding: '1rem', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)' }}>
-                                <ArrowUp size={32} color="var(--accent-danger)" />
-                            </div>
-                            <div>
-                                <p style={{ color: 'var(--text-secondary)' }}>Total Spent</p>
-                                <h2 style={{ fontSize: '2rem' }}>{formatCurrency(totalSpent)}</h2>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            {sortedCategories.map(([category, amount]) => {
-                                const Icon = CATEGORY_ICONS[category] || HelpCircle;
-                                const color = CATEGORY_COLORS[category] || 'var(--text-secondary)';
-                                const percentage = totalSpent > 0 ? (amount / totalSpent) * 100 : 0;
-
-                                return (
-                                    <div key={category}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <Icon size={16} color={color} />
-                                                <span style={{ textTransform: 'capitalize' }}>{category.replace('_', ' ')}</span>
+            {loading ? <p className="loading-text">Loading...</p> : (
+                <div className="expenses-grid">
+                    {/* Category breakdown */}
+                    <Card className="flat">
+                        <h3 className="section-heading">Category Breakdown</h3>
+                        <div className="expense-donut-row">
+                            <DonutChart
+                                segments={donutSegments}
+                                size={160}
+                                strokeWidth={18}
+                                centerValue={formatCurrency(totalSpent)}
+                                centerLabel="total"
+                            />
+                            <div className="cat-breakdown-list">
+                                {Object.entries(categoryTotals)
+                                    .sort(([, a], [, b]) => b - a)
+                                    .map(([cat, amount]) => {
+                                        const catDef = CATEGORIES.find(c => c.value === cat);
+                                        const pct = totalSpent > 0 ? (amount / totalSpent) * 100 : 0;
+                                        return (
+                                            <div key={cat} className="cat-breakdown-item">
+                                                <div className="cat-breakdown-left">
+                                                    <span className="cat-dot" style={{ backgroundColor: catDef?.color }} />
+                                                    <span className="cat-name">{catDef?.label || cat}</span>
+                                                </div>
+                                                <div className="cat-breakdown-right">
+                                                    <span className="cat-amount">{formatCurrency(amount)}</span>
+                                                    <span className="cat-pct">{pct.toFixed(0)}%</span>
+                                                </div>
+                                                <div className="cat-bar-bg">
+                                                    <div
+                                                        className="cat-bar-fill"
+                                                        style={{ width: `${pct}%`, backgroundColor: catDef?.color }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <span style={{ fontWeight: 600 }}>{formatCurrency(amount)}</span>
-                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-                                                    ({Math.round(percentage)}%)
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div style={{
-                                            width: '100%',
-                                            height: '6px',
-                                            background: 'rgba(255,255,255,0.05)',
-                                            borderRadius: '3px',
-                                            overflow: 'hidden'
-                                        }}>
-                                            <div style={{
-                                                width: `${percentage}%`,
-                                                height: '100%',
-                                                background: color,
-                                                borderRadius: '3px',
-                                                transition: 'width 0.5s ease-out'
-                                            }} />
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                        );
+                                    })
+                                }
+                                {Object.keys(categoryTotals).length === 0 && (
+                                    <p className="empty-cat-text">No expenses yet.</p>
+                                )}
+                            </div>
                         </div>
                     </Card>
 
-                    <Card>
-                        <h3>Top Spending</h3>
-                        {sortedCategories.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
-                                <div style={{
-                                    width: '180px',
-                                    height: '180px',
-                                    borderRadius: '50%',
-                                    border: `12px solid ${CATEGORY_COLORS[sortedCategories[0][0]]}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexDirection: 'column',
-                                    boxShadow: `0 0 20px -5px ${CATEGORY_COLORS[sortedCategories[0][0]]}`
-                                }}>
-                                    {(() => {
-                                        const CatIcon = CATEGORY_ICONS[sortedCategories[0][0]] || HelpCircle;
-                                        return <CatIcon size={32} color={CATEGORY_COLORS[sortedCategories[0][0]]} />;
-                                    })()}
-                                    <span style={{ marginTop: '0.5rem', fontWeight: 600, textTransform: 'capitalize' }}>
-                                        {sortedCategories[0][0].replace('_', ' ')}
-                                    </span>
-                                </div>
-                                <p style={{ marginTop: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    You spend the most on <span style={{ color: 'var(--text-primary)' }}>{sortedCategories[0][0].replace('_', ' ')}</span>.
-                                </p>
-                            </div>
+                    {/* Transactions list */}
+                    <Card className="flat expenses-list-card">
+                        <h3 className="section-heading">Transactions ({filtered.length})</h3>
+                        {filtered.length === 0 ? (
+                            <EmptyState
+                                icon={<Filter size={28} />}
+                                title="No results"
+                                description="Try adjusting your search or filter."
+                            />
                         ) : (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                No expense data available.
+                            <div className="expenses-list">
+                                {filtered.map((e) => (
+                                    <div key={e.id} className="expense-item">
+                                        <div className="expense-item-left">
+                                            <div
+                                                className="expense-item-icon"
+                                                style={{
+                                                    backgroundColor: `${CATEGORIES.find(c => c.value === e.category)?.color}18`
+                                                }}
+                                            >
+                                                {React.createElement(
+                                                    CATEGORIES.find(c => c.value === e.category)?.icon || HelpCircle,
+                                                    { size: 16, color: CATEGORIES.find(c => c.value === e.category)?.color }
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="expense-item-title">{e.title}</div>
+                                                <div className="expense-item-date">{e.date}</div>
+                                            </div>
+                                        </div>
+                                        <div className="expense-item-right">
+                                            <span className={`expense-item-amount ${e.category === 'income' ? 'income' : ''}`}>
+                                                {e.category === 'income' ? '+' : '-'}{formatCurrency(e.amount)}
+                                            </span>
+                                            <button
+                                                className="expense-delete-btn"
+                                                onClick={() => e.id && deleteExpense(e.id)}
+                                            >
+                                                <Trash2 size={13} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </Card>
                 </div>
             )}
 
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Add New Expense"
-            >
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                    <Input
-                        label="Description"
-                        placeholder="e.g. Hoste Rent / Pizza Party"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Input
-                        label="Amount"
-                        type="number"
-                        placeholder="0.00"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                    />
-
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Expense">
+                <form onSubmit={handleSubmit}>
+                    <Input label="Description" placeholder="e.g. Hostel Rent" value={title}
+                        onChange={e => setTitle(e.target.value)} required />
+                    <Input label="Amount" type="number" placeholder="0.00" value={amount}
+                        onChange={e => setAmount(e.target.value)} min="0.01" step="0.01" required />
+                    <Input label="Date" type="date" value={date}
+                        onChange={e => setDate(e.target.value)} required />
                     <div className="input-group">
                         <label className="input-label">Category</label>
-                        <select
-                            className="glass-input"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                        >
-                            <option value="food">Food</option>
-                            <option value="rent_hostel">Rent / Hostel</option>
-                            <option value="travel">Travel</option>
-                            <option value="subscriptions">Subscriptions</option>
-                            <option value="study_materials">Study Materials</option>
-                            <option value="income">Income</option>
-                            <option value="other">Other</option>
+                        <select className="glass-input" value={category}
+                            onChange={e => setCategory(e.target.value as ExpenseCategory)}>
+                            {CATEGORIES.map(c => (
+                                <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
                         </select>
                     </div>
-
-                    <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
-                        <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} style={{ flex: 1 }}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" style={{ flex: 1 }} disabled={isSubmitting}>
-                            {isSubmitting ? 'Saving...' : 'Save Expense'}
-                        </Button>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <Button type="button" variant="ghost" fullWidth onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                        <Button type="submit" fullWidth loading={isSubmitting}>Save Expense</Button>
                     </div>
                 </form>
             </Modal>

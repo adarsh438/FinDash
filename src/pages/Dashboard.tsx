@@ -1,192 +1,184 @@
-import { useEffect, useState, useCallback } from 'react';
-import Card from '../components/Card';
-import TransactionRow from '../components/TransactionRow';
-import Skeleton from '../components/Skeleton';
-import SafeToSpendWidget from '../components/SafeToSpendWidget';
-import { useAuth } from '../context/AuthContext';
-import { expenseService, type Expense, type Budget } from '../services/expenseService';
-import { useCurrency } from '../context/CurrencyContext';
-import { useToast } from '../context/ToastContext';
-import { Wallet, TrendingUp, TrendingDown, Clock, ArrowRight } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Wallet, TrendingUp, TrendingDown, ArrowRight, Plus, Target, Clock, Zap } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useExpenses } from '../context/ExpenseContext';
+import { useCurrency } from '../context/CurrencyContext';
+import StatCard from '../components/StatCard';
+import TransactionRow from '../components/TransactionRow';
+import SafeToSpendWidget from '../components/SafeToSpendWidget';
+import BudgetModal from '../components/BudgetModal';
+import Skeleton from '../components/Skeleton';
+import Button from '../components/Button';
 import './Dashboard.css';
 
 const Dashboard = () => {
     const { currentUser } = useAuth();
     const { formatCurrency } = useCurrency();
     const navigate = useNavigate();
-    const { showToast } = useToast();
+    const {
+        loading, expenses, budget,
+        currentMonthIncome, currentMonthSpend, balance,
+        currentMonthExpenses, deleteExpense
+    } = useExpenses();
 
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [budget, setBudget] = useState<Budget | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
     const daysRemaining = (() => {
         const now = new Date();
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        return lastDay.getDate() - now.getDate();
+        return Math.max(lastDay.getDate() - now.getDate(), 1);
     })();
 
-    const handleSetBudget = useCallback(async () => {
-        if (!currentUser) return;
-        const amountStr = prompt("Enter your monthly budget amount (₹):", budget?.amount.toString() || "5000");
-        if (amountStr && !isNaN(parseFloat(amountStr))) {
-            const amount = parseFloat(amountStr);
-            try {
-                await expenseService.setBudget(currentUser.uid, amount, 'monthly');
-                showToast(`Budget set to ${formatCurrency(amount)}`, 'success');
-            } catch (error: any) {
-                console.error(error);
-                showToast(`Failed to update budget: ${error.message || 'Unknown error'}`, 'error');
-            }
-        }
-    }, [currentUser, budget, formatCurrency, showToast]);
+    // Last month comparison for trend
+    const lastMonthExpenses = expenses.filter(e => {
+        const d = new Date(e.date);
+        const now = new Date();
+        return d.getMonth() === (now.getMonth() - 1 + 12) % 12 &&
+               d.getFullYear() === (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()) &&
+               e.category !== 'income';
+    });
+    const lastMonthSpend = lastMonthExpenses.reduce((s, e) => s + e.amount, 0);
+    const spendTrend = lastMonthSpend > 0
+        ? ((currentMonthSpend - lastMonthSpend) / lastMonthSpend) * 100
+        : 0;
 
-    useEffect(() => {
-        if (!currentUser) return;
+    const recentTransactions = currentMonthExpenses.slice(0, 6);
 
-        // Safety timeout
-        const safetyTimer = setTimeout(() => setLoading(false), 5000);
-
-        const unsubscribeExpenses = expenseService.subscribeToExpenses(currentUser.uid, (data) => {
-            setExpenses(data);
-            setLoading(false); // Ensure loading is false when data arrives
-            clearTimeout(safetyTimer);
-        });
-
-        const unsubscribeBudget = expenseService.subscribeToBudget(currentUser.uid, (data) => {
-            setBudget(data);
-        });
-
-        return () => {
-            unsubscribeExpenses();
-            unsubscribeBudget();
-            clearTimeout(safetyTimer);
-        };
-    }, [currentUser]);
-
-    const currentMonthStats = expenses.reduce((acc, expense) => {
-        const expenseDate = new Date(expense.date);
-        const isCurrentMonth = expenseDate.getMonth() === new Date().getMonth() &&
-            expenseDate.getFullYear() === new Date().getFullYear();
-
-        if (expense.category === 'income') {
-            acc.totalIncomeAllTime += expense.amount; // Keep income all time? Or monthly? Usually monthly cash flow is better.
-            if (isCurrentMonth) acc.monthIncome += expense.amount;
-        } else {
-            acc.totalExpensesAllTime += expense.amount;
-            if (isCurrentMonth) acc.monthExpenses += expense.amount;
-        }
-        return acc;
-    }, { monthIncome: 0, monthExpenses: 0, totalIncomeAllTime: 0, totalExpensesAllTime: 0 });
-
-    const totalIncome = currentMonthStats.monthIncome;
-    const totalExpenses = currentMonthStats.monthExpenses;
-
-    const balance = totalIncome - totalExpenses;
-    const recentTransactions = expenses.slice(0, 5);
+    const handleDelete = useCallback(async (id: string) => {
+        await deleteExpense(id);
+    }, [deleteExpense]);
 
     if (loading) {
         return (
             <div className="dashboard-container">
-                <div className="dashboard-header">
-                    <Skeleton width={250} height={32} />
-                    <Skeleton width={350} height={20} style={{ marginTop: '0.5rem' }} />
-                </div>
-
-                <div className="safe-section" style={{ marginBottom: '1.5rem' }}>
-                    <Skeleton height={180} style={{ borderRadius: '16px' }} />
-                </div>
-
+                <Skeleton height={80} style={{ borderRadius: 16, marginBottom: '2rem' }} />
+                <Skeleton height={140} style={{ borderRadius: 16, marginBottom: '2rem' }} />
                 <div className="stats-grid">
-                    <Skeleton height={140} style={{ borderRadius: '16px' }} />
-                    <Skeleton height={140} style={{ borderRadius: '16px' }} />
-                    <Skeleton height={140} style={{ borderRadius: '16px' }} />
-                </div>
-
-                <div className="recent-section">
-                    <Skeleton height={250} style={{ borderRadius: '24px' }} />
+                    {[1,2,3].map(i => <Skeleton key={i} height={130} style={{ borderRadius: 16 }} />)}
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="dashboard-container">
+        <div className="dashboard-container animate-fade-in">
+            {/* Header */}
             <div className="dashboard-header">
-                <h1>Welcome back, {currentUser?.displayName?.split(' ')[0] || 'User'}! 👋</h1>
-                <p>Here's what's happening with your money today.</p>
+                <div>
+                    <h1 className="dashboard-greeting">
+                        Good {getTimeOfDay()}, <span className="gradient-text">{currentUser?.displayName?.split(' ')[0] || 'there'}</span> 👋
+                    </h1>
+                    <p className="dashboard-subtitle">Here's your financial overview for {getCurrentMonth()}.</p>
+                </div>
+                <div className="dashboard-quick-actions">
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={<Target size={15} />}
+                        onClick={() => setIsBudgetModalOpen(true)}
+                    >
+                        Set Budget
+                    </Button>
+                    <Button
+                        size="sm"
+                        icon={<Plus size={15} />}
+                        onClick={() => navigate('/expenses')}
+                    >
+                        Add Expense
+                    </Button>
+                </div>
             </div>
 
-            <div className="safe-section" style={{ marginBottom: '1.5rem' }}>
+            {/* Safe to Spend */}
+            <div className="safe-section">
                 <SafeToSpendWidget
                     budget={budget}
-                    totalSpentMonth={totalExpenses} // Note: This assumes all fetched expenses are this month. For prod, we need filtering.
+                    totalSpentMonth={currentMonthSpend}
                     daysRemaining={daysRemaining}
-                    onSetBudget={handleSetBudget}
+                    onSetBudget={() => setIsBudgetModalOpen(true)}
                 />
             </div>
 
-            <div className="stats-grid">
-                <Card className="stat-card balance">
-                    <div className="stat-icon">
-                        <Wallet size={24} color="white" />
-                    </div>
-                    <div>
-                        <h3>Total Balance</h3>
-                        <p className="stat-value">{formatCurrency(balance)}</p>
-                    </div>
-                </Card>
-
-                <Card className="stat-card income">
-                    <div className="stat-icon income">
-                        <TrendingUp size={24} color="var(--accent-success)" />
-                    </div>
-                    <div>
-                        <h3>Income</h3>
-                        <p className="stat-value">{formatCurrency(totalIncome)}</p>
-                    </div>
-                </Card>
-
-                <Card className="stat-card expense">
-                    <div className="stat-icon expense">
-                        <TrendingDown size={24} color="var(--accent-danger)" />
-                    </div>
-                    <div>
-                        <h3>Expenses</h3>
-                        <p className="stat-value">{formatCurrency(totalExpenses)}</p>
-                    </div>
-                </Card>
+            {/* Stats */}
+            <div className="stats-grid stagger-children">
+                <StatCard
+                    label="Balance"
+                    value={formatCurrency(balance)}
+                    icon={<Wallet size={18} />}
+                    accentColor="var(--accent-primary)"
+                />
+                <StatCard
+                    label="Income"
+                    value={formatCurrency(currentMonthIncome)}
+                    icon={<TrendingUp size={18} />}
+                    accentColor="var(--accent-success)"
+                />
+                <StatCard
+                    label="Expenses"
+                    value={formatCurrency(currentMonthSpend)}
+                    icon={<TrendingDown size={18} />}
+                    trend={spendTrend}
+                    accentColor="var(--accent-danger)"
+                />
             </div>
 
+            {/* Recent Transactions */}
             <div className="recent-section">
                 <div className="section-header">
-                    <h2><Clock size={20} /> Recent Activity</h2>
-                    <button className="view-all-btn" onClick={() => navigate('/expenses')}>
-                        View All <ArrowRight size={16} />
+                    <div className="section-title">
+                        <Clock size={17} />
+                        <h2>Recent Activity</h2>
+                    </div>
+                    <button className="view-all-btn" onClick={() => navigate('/transactions')}>
+                        View All <ArrowRight size={14} />
                     </button>
                 </div>
 
-                <div className="transactions-list">
+                <div className="transactions-card">
                     {recentTransactions.length === 0 ? (
-                        <Card style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                            <p>No recent transactions.</p>
-                        </Card>
+                        <div className="no-transactions">
+                            <Zap size={32} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                            <p>No transactions this month yet.</p>
+                            <button className="add-first-btn" onClick={() => navigate('/expenses')}>
+                                + Add your first expense
+                            </button>
+                        </div>
                     ) : (
-                        recentTransactions.map((expense) => (
-                            <TransactionRow
-                                key={expense.id}
-                                title={expense.title}
-                                date={expense.date}
-                                amount={expense.category === 'income' ? expense.amount : -expense.amount}
-                                category={expense.category}
-                            />
-                        ))
+                        <div className="stagger-children">
+                            {recentTransactions.map((expense) => (
+                                <TransactionRow
+                                    key={expense.id}
+                                    id={expense.id}
+                                    title={expense.title}
+                                    date={expense.date}
+                                    amount={expense.category === 'income' ? expense.amount : -expense.amount}
+                                    category={expense.category}
+                                    onDelete={handleDelete}
+                                />
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
+
+            <BudgetModal
+                isOpen={isBudgetModalOpen}
+                onClose={() => setIsBudgetModalOpen(false)}
+            />
         </div>
     );
 };
+
+function getTimeOfDay() {
+    const h = new Date().getHours();
+    if (h < 12) return 'morning';
+    if (h < 17) return 'afternoon';
+    return 'evening';
+}
+
+function getCurrentMonth() {
+    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
 
 export default Dashboard;

@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Plus, Trash2, Coins } from 'lucide-react';
+import { Target, Plus, Trash2, Coins, CheckCircle } from 'lucide-react';
 import Card from '../components/Card';
+import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
+import EmptyState from '../components/EmptyState';
 import { useAuth } from '../context/AuthContext';
 import { goalService, type Goal } from '../services/goalService';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
 import './Goals.css';
+
+const GOAL_COLORS = ['#6366f1','#a855f7','#10b981','#f59e0b','#ef4444','#06b6d4'];
 
 const Goals = () => {
     const { currentUser } = useAuth();
@@ -16,150 +20,151 @@ const Goals = () => {
     const { showToast } = useToast();
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isFundOpen, setIsFundOpen] = useState(false);
+    const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
-    // Modals
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isFundModalOpen, setIsFundModalOpen] = useState(false);
-
-    // Add Goal Form
     const [title, setTitle] = useState('');
     const [targetAmount, setTargetAmount] = useState('');
     const [deadline, setDeadline] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Fund Goal Form
-    const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+    const [pickedColor, setPickedColor] = useState(GOAL_COLORS[0]);
     const [fundAmount, setFundAmount] = useState('');
-    const [isFunding, setIsFunding] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (!currentUser) return;
-
-        const unsubscribe = goalService.subscribeToGoals(currentUser.uid, (data) => {
-            setGoals(data);
-            setLoading(false);
+        const unsub = goalService.subscribeToGoals(currentUser.uid, data => {
+            setGoals(data); setLoading(false);
         });
-
-        return () => unsubscribe();
+        return () => unsub();
     }, [currentUser]);
 
-    const handleAddGoal = async (e: React.FormEvent) => {
+    const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentUser) return;
-
         setIsSubmitting(true);
         try {
             await goalService.addGoal(currentUser.uid, {
-                title,
-                targetAmount: parseFloat(targetAmount),
-                deadline,
-                color: 'var(--accent-primary)' // Default color for now
+                title, targetAmount: parseFloat(targetAmount),
+                deadline, color: pickedColor
             });
-            setIsAddModalOpen(false);
-            showToast("Goal created successfully", "success");
-            setTitle('');
-            setTargetAmount('');
-            setDeadline('');
-        } catch (error: any) {
-            console.error("Failed to add goal", error);
-            showToast(error.message || "Failed to add goal", "error");
-        } finally {
-            setIsSubmitting(false);
-        }
+            setIsAddOpen(false);
+            showToast('Goal created!', 'success');
+            setTitle(''); setTargetAmount(''); setDeadline(''); setPickedColor(GOAL_COLORS[0]);
+        } catch (err: any) {
+            showToast(err.message || 'Failed', 'error');
+        } finally { setIsSubmitting(false); }
     };
 
-    const handleAddFunds = async (e: React.FormEvent) => {
+    const handleFund = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedGoal || !fundAmount) return;
-
-        setIsFunding(true);
+        if (!selectedGoal) return;
+        setIsSubmitting(true);
         try {
             await goalService.addFunds(selectedGoal.id!, selectedGoal.currentAmount, parseFloat(fundAmount));
-            setIsFundModalOpen(false);
-            showToast("Funds added successfully!", "success");
+            setIsFundOpen(false);
+            showToast('Funds added!', 'success');
             setFundAmount('');
-            setSelectedGoal(null);
-        } catch (error: any) {
-            console.error("Failed to add funds", error);
-            showToast(error.message || "Failed to add funds", "error");
-        } finally {
-            setIsFunding(false);
-        }
+        } catch (err: any) {
+            showToast(err.message || 'Failed', 'error');
+        } finally { setIsSubmitting(false); }
     };
 
     const handleDelete = async (goalId: string) => {
-        if (window.confirm("Are you sure you want to delete this goal?")) {
-            try {
-                await goalService.deleteGoal(goalId);
-                showToast("Goal deleted", "info");
-            } catch (error: any) {
-                console.error("Failed to delete goal", error);
-                showToast("Failed to delete goal", "error");
-            }
-        }
+        try {
+            await goalService.deleteGoal(goalId);
+            showToast('Goal deleted', 'info');
+        } catch { showToast('Failed to delete', 'error'); }
     };
 
-    const openFundModal = (goal: Goal) => {
-        setSelectedGoal(goal);
-        setIsFundModalOpen(true);
+    const getDaysRemaining = (deadline: string) => {
+        const diff = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+        return diff;
     };
 
     return (
-        <div className="goals-container">
-            <div className="goals-header">
-                <div>
-                    <h1>Financial Goals</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Track your savings and reach your targets.</p>
-                </div>
-                <Button onClick={() => setIsAddModalOpen(true)} icon={<Plus size={18} />}>
-                    New Goal
-                </Button>
-            </div>
+        <div className="goals-page animate-fade-in">
+            <PageHeader
+                title="Financial Goals"
+                subtitle="Save with intention. Reach your targets."
+                icon={<Target size={22} />}
+                action={<Button icon={<Plus size={16} />} onClick={() => setIsAddOpen(true)}>New Goal</Button>}
+            />
 
-            {loading ? (
-                <p>Loading goals...</p>
-            ) : goals.length === 0 ? (
-                <Card className="empty-state">
-                    <Target size={48} style={{ opacity: 0.5 }} />
-                    <h3>No goals yet</h3>
-                    <p>Start saving for something special today.</p>
-                    <Button variant="ghost" onClick={() => setIsAddModalOpen(true)}>Create your first goal</Button>
+            {loading ? <p className="loading-text">Loading goals...</p>
+            : goals.length === 0 ? (
+                <Card>
+                    <EmptyState
+                        icon={<Target size={32} />}
+                        title="No goals yet"
+                        description="Create your first savings goal and start tracking progress."
+                        actionLabel="Create Goal"
+                        onAction={() => setIsAddOpen(true)}
+                    />
                 </Card>
             ) : (
-                <div className="goals-grid">
-                    {goals.map((goal) => {
+                <div className="goals-grid stagger-children">
+                    {goals.map(goal => {
                         const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+                        const isComplete = progress >= 100;
+                        const daysLeft = getDaysRemaining(goal.deadline);
+
                         return (
-                            <Card key={goal.id} className="goal-card" style={{ '--card-color': goal.color } as any}>
-                                <div className="goal-header">
+                            <Card key={goal.id} className={`goal-card ${isComplete ? 'complete' : ''}`}
+                                style={{ '--goal-color': goal.color } as React.CSSProperties}>
+                                <div className="goal-accent-bar" />
+
+                                <div className="goal-top">
                                     <div>
-                                        <h3>{goal.title}</h3>
-                                        <span className="goal-target">Target: {formatCurrency(goal.targetAmount)}</span>
+                                        <div className="goal-title-row">
+                                            <h3>{goal.title}</h3>
+                                            {isComplete && <CheckCircle size={16} className="complete-icon" />}
+                                        </div>
+                                        <p className="goal-target">
+                                            {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+                                        </p>
                                     </div>
-                                    <Target size={20} color={goal.color} />
-                                </div>
-
-                                <div className="progress-section">
-                                    <div className="progress-labels">
-                                        <span>{formatCurrency(goal.currentAmount)}</span>
-                                        <span>{Math.round(progress)}%</span>
-                                    </div>
-                                    <div className="progress-bar-bg">
-                                        <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
-                                    </div>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                        By {new Date(goal.deadline).toLocaleDateString()}
-                                    </span>
-                                </div>
-
-                                <div className="goal-actions">
-                                    <button className="add-funds-btn" onClick={() => openFundModal(goal)}>
-                                        <Coins size={14} style={{ display: 'inline', marginRight: '4px' }} /> Add Funds
-                                    </button>
-                                    <button className="delete-goal-btn" onClick={() => handleDelete(goal.id!)}>
-                                        <Trash2 size={16} />
+                                    <button className="goal-delete-btn" onClick={() => handleDelete(goal.id!)}>
+                                        <Trash2 size={14} />
                                     </button>
                                 </div>
+
+                                {/* Progress bar */}
+                                <div className="goal-progress-section">
+                                    <div className="goal-progress-bar-bg">
+                                        <div
+                                            className="goal-progress-bar-fill"
+                                            style={{
+                                                width: `${progress}%`,
+                                                background: isComplete
+                                                    ? 'var(--accent-success)'
+                                                    : `linear-gradient(90deg, ${goal.color}cc, ${goal.color})`,
+                                                boxShadow: `0 0 10px ${goal.color}60`
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="goal-progress-labels">
+                                        <span>{Math.round(progress)}% funded</span>
+                                        <span className={`days-badge ${daysLeft < 0 ? 'overdue' : daysLeft < 30 ? 'soon' : ''}`}>
+                                            {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue`
+                                             : daysLeft === 0 ? 'Due today!'
+                                             : `${daysLeft}d left`}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {!isComplete && (
+                                    <button className="add-funds-btn"
+                                        onClick={() => { setSelectedGoal(goal); setIsFundOpen(true); }}
+                                        style={{ '--goal-color': goal.color } as React.CSSProperties}>
+                                        <Coins size={14} /> Add Funds
+                                    </button>
+                                )}
+                                {isComplete && (
+                                    <div className="goal-complete-badge">
+                                        🎉 Goal Achieved!
+                                    </div>
+                                )}
                             </Card>
                         );
                     })}
@@ -167,57 +172,47 @@ const Goals = () => {
             )}
 
             {/* Add Goal Modal */}
-            <Modal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                title="Create New Goal"
-            >
-                <form onSubmit={handleAddGoal} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <Input
-                        label="Goal Title"
-                        placeholder="e.g. New Laptop"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Input
-                        label="Target Amount"
-                        type="number"
-                        placeholder="0.00"
-                        value={targetAmount}
-                        onChange={(e) => setTargetAmount(e.target.value)}
-                    />
-                    <Input
-                        label="Target Date"
-                        type="date"
-                        value={deadline}
-                        onChange={(e) => setDeadline(e.target.value)}
-                    />
-                    <Button type="submit" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
-                        {isSubmitting ? 'Creating...' : 'Create Goal'}
-                    </Button>
+            <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Create New Goal">
+                <form onSubmit={handleAdd}>
+                    <Input label="Goal Title" placeholder="e.g. New Laptop" value={title}
+                        onChange={e => setTitle(e.target.value)} required />
+                    <Input label="Target Amount" type="number" placeholder="0.00" value={targetAmount}
+                        onChange={e => setTargetAmount(e.target.value)} required min="1" />
+                    <Input label="Target Date" type="date" value={deadline}
+                        onChange={e => setDeadline(e.target.value)} required />
+                    <div className="input-group">
+                        <label className="input-label">Color</label>
+                        <div className="color-picker">
+                            {GOAL_COLORS.map(c => (
+                                <button key={c} type="button"
+                                    className={`color-swatch ${pickedColor === c ? 'selected' : ''}`}
+                                    style={{ backgroundColor: c }}
+                                    onClick={() => setPickedColor(c)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <Button type="button" variant="ghost" fullWidth onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                        <Button type="submit" fullWidth loading={isSubmitting}>Create Goal</Button>
+                    </div>
                 </form>
             </Modal>
 
-            {/* Add Funds Modal */}
-            <Modal
-                isOpen={isFundModalOpen}
-                onClose={() => setIsFundModalOpen(false)}
-                title={`Add Funds to ${selectedGoal?.title}`}
-            >
-                <form onSubmit={handleAddFunds} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        You currently have {formatCurrency(selectedGoal?.currentAmount || 0)} saved via this app.
+            {/* Fund Modal */}
+            <Modal isOpen={isFundOpen} onClose={() => setIsFundOpen(false)}
+                title={`Fund: ${selectedGoal?.title || ''}`}>
+                <form onSubmit={handleFund}>
+                    <p className="fund-current">
+                        Currently saved: <strong>{formatCurrency(selectedGoal?.currentAmount || 0)}</strong>
+                        {' '}of{' '}<strong>{formatCurrency(selectedGoal?.targetAmount || 0)}</strong>
                     </p>
-                    <Input
-                        label="Amount to Add"
-                        type="number"
-                        placeholder="0.00"
-                        value={fundAmount}
-                        onChange={(e) => setFundAmount(e.target.value)}
-                    />
-                    <Button type="submit" style={{ marginTop: '1rem' }} disabled={isFunding}>
-                        {isFunding ? 'Adding...' : 'Add Funds'}
-                    </Button>
+                    <Input label="Amount to Add" type="number" placeholder="0.00" value={fundAmount}
+                        onChange={e => setFundAmount(e.target.value)} required min="1" />
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <Button type="button" variant="ghost" fullWidth onClick={() => setIsFundOpen(false)}>Cancel</Button>
+                        <Button type="submit" fullWidth loading={isSubmitting}>Add Funds</Button>
+                    </div>
                 </form>
             </Modal>
         </div>

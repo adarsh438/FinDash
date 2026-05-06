@@ -1,178 +1,230 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { BarChart3, TrendingUp, Calendar, Lock, Sparkles, PieChart } from 'lucide-react';
 import Card from '../components/Card';
-import { useAuth } from '../context/AuthContext';
-import { expenseService, type Expense } from '../services/expenseService';
-import { useCurrency } from '../context/CurrencyContext';
-import { BarChart3, TrendingUp, Calendar, Lock } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import DonutChart from '../components/DonutChart';
+import StatCard from '../components/StatCard';
 import Button from '../components/Button';
 import UpgradeModal from '../components/UpgradeModal';
-import './Dashboard.css'; // Reusing dashboard styles
+import { useAuth } from '../context/AuthContext';
+import { useExpenses } from '../context/ExpenseContext';
+import { useCurrency } from '../context/CurrencyContext';
+import './Analytics.css';
+
+const CATEGORY_COLORS: Record<string, string> = {
+    food:            '#f59e0b',
+    rent_hostel:     '#8b5cf6',
+    travel:          '#06b6d4',
+    subscriptions:   '#ec4899',
+    study_materials: '#f472b6',
+    other:           '#64748b',
+};
 
 const Analytics = () => {
-    const { currentUser, userProfile } = useAuth(); // Get userProfile
+    const { userProfile } = useAuth();
     const { formatCurrency } = useCurrency();
-    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const { expenses, currentMonthExpenses, currentMonthSpend, currentMonthIncome } = useExpenses();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-
-    useEffect(() => {
-        if (!currentUser) return;
-
-        const unsubscribe = expenseService.subscribeToExpenses(currentUser.uid, (data) => {
-            setExpenses(data);
-        });
-
-        return () => unsubscribe();
-    }, [currentUser]);
-
-    // 1. Calculate Weekly Spending Trend (Last 7 Days)
-    const getWeeklyData = () => {
-        const last7Days = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            return d.toISOString().split('T')[0];
-        }).reverse();
-
-        const data = last7Days.map(date => {
-            const dayTotal = expenses
-                .filter(e => e.date === date && e.category !== 'income')
-                .reduce((sum, e) => sum + e.amount, 0);
-
-            return {
-                date,
-                dayName: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-                amount: dayTotal
-            };
-        });
-
-        return data;
-    };
-
-    const weeklyData = getWeeklyData();
-    const maxAmount = Math.max(...weeklyData.map(d => d.amount), 1); // Avoid div by zero
-
-    // 2. Monthly Summary
-    const currentMonth = new Date().getMonth();
-    const monthlyExpenses = expenses
-        .filter(e => new Date(e.date).getMonth() === currentMonth && e.category !== 'income')
-        .reduce((sum, e) => sum + e.amount, 0);
-
-    const monthlyIncome = expenses
-        .filter(e => new Date(e.date).getMonth() === currentMonth && e.category === 'income')
-        .reduce((sum, e) => sum + e.amount, 0);
-
-    const savingsRate = monthlyIncome > 0
-        ? ((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100
-        : 0;
-
     const isPremium = userProfile?.isPremium;
 
+    // Weekly spending (last 7 days)
+    const weeklyData = (() => {
+        const days = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const total = expenses
+                .filter(e => e.date === dateStr && e.category !== 'income')
+                .reduce((s, e) => s + e.amount, 0);
+            return {
+                day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                amount: total,
+                date: dateStr,
+            };
+        });
+        return days;
+    })();
+
+    const maxWeekly = Math.max(...weeklyData.map(d => d.amount), 1);
+
+    // Category breakdown
+    const categoryTotals = currentMonthExpenses
+        .filter(e => e.category !== 'income')
+        .reduce((acc, e) => {
+            acc[e.category] = (acc[e.category] || 0) + e.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+    const donutSegments = Object.entries(categoryTotals)
+        .sort(([, a], [, b]) => b - a)
+        .map(([cat, val]) => ({
+            value: val,
+            color: CATEGORY_COLORS[cat] || '#64748b',
+            label: cat.replace('_', ' '),
+        }));
+
+    const savingsRate = currentMonthIncome > 0
+        ? ((currentMonthIncome - currentMonthSpend) / currentMonthIncome) * 100
+        : 0;
+
+    const budgetUtilisation = (() => {
+        const topCat = donutSegments[0];
+        return topCat ? Math.round((topCat.value / currentMonthSpend) * 100) : 0;
+    })();
+
     return (
-        <div style={{ animation: 'fadeIn 0.5s ease-out', position: 'relative' }}>
-            {/* Premium Gating Overlay */}
+        <div className="analytics-page animate-fade-in">
+            <PageHeader
+                title="Analytics"
+                subtitle="Understand your spending patterns at a glance."
+                icon={<BarChart3 size={22} />}
+            />
+
             {!isPremium && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.1)', // Light overlay instead of blur on text for readability before blur
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '16px'
-                }}>
-                    <Card style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px' }}>
-                        <div style={{
-                            background: 'rgba(255,215,0,0.2)',
-                            display: 'inline-flex',
-                            padding: '1rem',
-                            borderRadius: '50%',
-                            marginBottom: '1rem'
-                        }}>
-                            <Lock size={32} color="#FFD700" />
+                <div className="analytics-gate">
+                    <div className="gate-card animate-fade-in-scale">
+                        <div className="gate-icon">
+                            <Lock size={28} />
                         </div>
-                        <h2>Unlock Analytics</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                            Get detailed insights, trends, and saving reports with Premium.
-                        </p>
-                        <Button onClick={() => setIsUpgradeModalOpen(true)} style={{ width: '100%', justifyContent: 'center  ' }}>
+                        <h2>Unlock Full Analytics</h2>
+                        <p>Get rich charts, savings insights, category breakdowns, and trend analysis — all with Premium.</p>
+                        <Button onClick={() => setIsUpgradeModalOpen(true)} size="lg">
                             Upgrade to Premium
                         </Button>
-                    </Card>
+                    </div>
+                    <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
                 </div>
             )}
 
-            <div style={{ filter: !isPremium ? 'blur(4px)' : 'none', pointerEvents: !isPremium ? 'none' : 'auto' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <BarChart3 size={32} color="var(--accent-primary)" />
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>Analytics</h1>
+            <div className={`analytics-content ${!isPremium ? 'blurred' : ''}`}>
+                {/* Summary Stats */}
+                <div className="analytics-stats stagger-children">
+                    <StatCard
+                        label="This Month's Spend"
+                        value={formatCurrency(currentMonthSpend)}
+                        icon={<Calendar size={18} />}
+                        accentColor="var(--accent-danger)"
+                    />
+                    <StatCard
+                        label="Savings Rate"
+                        value={`${Math.max(savingsRate, 0).toFixed(1)}%`}
+                        icon={<TrendingUp size={18} />}
+                        accentColor={savingsRate >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}
+                        trend={savingsRate}
+                    />
+                    <StatCard
+                        label="Top Category"
+                        value={donutSegments[0]?.label || '—'}
+                        icon={<Sparkles size={18} />}
+                        accentColor={donutSegments[0]?.color || 'var(--accent-primary)'}
+                    />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                    <Card>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <div>
-                                <p style={{ color: 'var(--text-secondary)' }}>This Month's Spending</p>
-                                <h2>{formatCurrency(monthlyExpenses)}</h2>
-                            </div>
-                            <Calendar size={24} color="var(--text-secondary)" />
+                {/* Charts Row */}
+                <div className="analytics-charts">
+                    {/* Weekly Bar Chart */}
+                    <Card className="chart-card flat">
+                        <h3 className="chart-title">
+                            <BarChart3 size={16} /> Spending — Last 7 Days
+                        </h3>
+                        <div className="bar-chart">
+                            {weeklyData.map((day) => {
+                                const pct = maxWeekly > 0 ? (day.amount / maxWeekly) * 100 : 0;
+                                const isToday = day.date === new Date().toISOString().split('T')[0];
+                                return (
+                                    <div key={day.date} className="bar-col">
+                                        {day.amount > 0 && (
+                                            <span className="bar-value">{formatCurrency(day.amount)}</span>
+                                        )}
+                                        <div className="bar-track">
+                                            <div
+                                                className={`bar-fill ${isToday ? 'today' : ''}`}
+                                                style={{ height: `${Math.max(pct, 2)}%` }}
+                                                title={`${day.day}: ${formatCurrency(day.amount)}`}
+                                            />
+                                        </div>
+                                        <span className={`bar-label ${isToday ? 'today' : ''}`}>{day.day}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </Card>
-                    <Card>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <div>
-                                <p style={{ color: 'var(--text-secondary)' }}>Savings Rate</p>
-                                <h2 style={{ color: savingsRate > 0 ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
-                                    {savingsRate.toFixed(1)}%
-                                </h2>
-                            </div>
-                            <TrendingUp size={24} color={savingsRate > 0 ? 'var(--accent-success)' : 'var(--accent-danger)'} />
-                        </div>
-                    </Card>
-                </div>
 
-                <Card style={{ padding: '2rem' }}>
-                    <h3 style={{ marginBottom: '2rem' }}>Last 7 Days Spending</h3>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        justifyContent: 'space-between',
-                        height: '200px',
-                        gap: '1rem'
-                    }}>
-                        {weeklyData.map((day) => {
-                            const heightPercentage = (day.amount / maxAmount) * 100;
-                            return (
-                                <div key={day.date} style={{
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}>
-                                    <div style={{
-                                        width: '100%',
-                                        height: `${Math.max(heightPercentage, 2)}%`, // Min 2% height for visibility
-                                        background: 'var(--accent-primary)',
-                                        borderRadius: '4px',
-                                        opacity: 0.8,
-                                        transition: 'height 0.5s ease-out',
-                                        minHeight: '4px'
-                                    }} title={`${day.date}: ${formatCurrency(day.amount)}`} />
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                        {day.dayName}
-                                    </span>
+                    {/* Category Donut */}
+                    <Card className="chart-card flat">
+                        <h3 className="chart-title">
+                            <PieChart size={16} /> Category Breakdown
+                        </h3>
+                        {donutSegments.length > 0 ? (
+                            <div className="donut-section">
+                                <DonutChart
+                                    segments={donutSegments}
+                                    size={180}
+                                    strokeWidth={20}
+                                    centerValue={formatCurrency(currentMonthSpend)}
+                                    centerLabel="total"
+                                />
+                                <div className="donut-legend">
+                                    {donutSegments.map((seg) => {
+                                        const pct = currentMonthSpend > 0
+                                            ? ((seg.value / currentMonthSpend) * 100).toFixed(1)
+                                            : '0';
+                                        return (
+                                            <div key={seg.label} className="legend-item">
+                                                <span className="legend-dot" style={{ backgroundColor: seg.color }} />
+                                                <span className="legend-label">{seg.label}</span>
+                                                <span className="legend-pct">{pct}%</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </Card>
-            </div>
+                            </div>
+                        ) : (
+                            <div className="chart-empty">
+                                <PieChart size={36} style={{ opacity: 0.2 }} />
+                                <p>No expense data yet</p>
+                            </div>
+                        )}
+                    </Card>
+                </div>
 
-            <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+                {/* Insights */}
+                {donutSegments.length > 0 && (
+                    <Card className="insights-card flat">
+                        <h3 className="chart-title">
+                            <Sparkles size={16} /> Key Insights
+                        </h3>
+                        <div className="insights-grid">
+                            <div className="insight-item">
+                                <span className="insight-emoji">📊</span>
+                                <div>
+                                    <strong>{donutSegments[0]?.label}</strong> is your biggest category
+                                    at <strong>{budgetUtilisation}%</strong> of spending.
+                                </div>
+                            </div>
+                            <div className="insight-item">
+                                <span className="insight-emoji">
+                                    {savingsRate >= 20 ? '🚀' : savingsRate >= 0 ? '💡' : '⚠️'}
+                                </span>
+                                <div>
+                                    {savingsRate >= 20
+                                        ? `Excellent! You're saving ${savingsRate.toFixed(1)}% of your income.`
+                                        : savingsRate >= 0
+                                        ? `You're saving ${savingsRate.toFixed(1)}%. Try to reach 20%.`
+                                        : `You're spending more than you earn. Review your budget.`}
+                                </div>
+                            </div>
+                            <div className="insight-item">
+                                <span className="insight-emoji">🗓️</span>
+                                <div>
+                                    {weeklyData.filter(d => d.amount > 0).length} active spending
+                                    days out of the last 7.
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 };

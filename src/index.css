@@ -1,74 +1,117 @@
-/* Import Google Fonts - Outfit */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+/* =====================================================
+   FINDASH — Premium Design System
+   ===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Core Colors - Deep Dark Theme */
-  --bg-dark: #050505;
-  --bg-card: rgba(20, 20, 23, 0.6);
-  --bg-card-hover: rgba(30, 30, 35, 0.8);
-  --bg-glass: rgba(255, 255, 255, 0.03);
+  /* ── Core Palette ── */
+  --bg-dark:              #050507;
+  --bg-card:              rgba(18, 18, 24, 0.7);
+  --bg-card-hover:        rgba(28, 28, 38, 0.85);
+  --bg-elevated:          rgba(24, 24, 32, 0.9);
+  --bg-glass:             rgba(255, 255, 255, 0.03);
+  --surface-light:        rgba(255, 255, 255, 0.06);
+  --surface-hover:        rgba(255, 255, 255, 0.09);
+  --surface-active:       rgba(255, 255, 255, 0.12);
 
-  /* Accents - Sophisticated Gradients */
-  --accent-primary: #6366f1;
-  --accent-secondary: #a855f7;
-  --accent-success: #10b981;
-  --accent-danger: #ef4444;
-  --accent-gradient: linear-gradient(120deg, #4f46e5 0%, #9333ea 100%);
-  --accent-glow: linear-gradient(120deg, rgba(79, 70, 229, 0.5) 0%, rgba(147, 51, 234, 0.5) 100%);
+  /* ── Accent Colors ── */
+  --accent-primary:       #6366f1;
+  --accent-primary-dim:   rgba(99, 102, 241, 0.15);
+  --accent-secondary:     #a855f7;
+  --accent-secondary-dim: rgba(168, 85, 247, 0.15);
+  --accent-success:       #10b981;
+  --accent-success-dim:   rgba(16, 185, 129, 0.15);
+  --accent-danger:        #ef4444;
+  --accent-danger-dim:    rgba(239, 68, 68, 0.15);
+  --accent-warning:       #f59e0b;
+  --accent-warning-dim:   rgba(245, 158, 11, 0.15);
+  --accent-info:          #06b6d4;
+  --accent-info-dim:      rgba(6, 182, 212, 0.15);
 
-  /* Text - Crisp & Readable */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  /* ── Gradients ── */
+  --accent-gradient:      linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --accent-gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  --accent-gradient-cool: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+  --accent-gradient-green:linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  --accent-glow:          linear-gradient(135deg, rgba(99,102,241,0.4) 0%, rgba(168,85,247,0.4) 100%);
 
-  /* Borders - Subtle & Refined */
-  --border-light: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.12);
+  /* ── Typography ── */
+  --text-primary:         #f1f5f9;
+  --text-secondary:       #94a3b8;
+  --text-muted:           #475569;
+  --text-inverse:         #0f172a;
 
-  /* Spacing - More Breathing Room */
-  --spacing-xs: 0.35rem;
-  --spacing-sm: 0.75rem;
-  --spacing-md: 1.5rem;
-  --spacing-lg: 2.25rem;
-  --spacing-xl: 3.5rem;
+  --font-xs:    0.75rem;
+  --font-sm:    0.875rem;
+  --font-base:  0.95rem;
+  --font-md:    1.05rem;
+  --font-lg:    1.25rem;
+  --font-xl:    1.5rem;
+  --font-2xl:   2rem;
+  --font-3xl:   2.5rem;
+  --font-4xl:   3rem;
 
-  /* Radius */
-  --radius-sm: 0.6rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-full: 9999px;
+  /* ── Borders ── */
+  --border-light:         rgba(255, 255, 255, 0.06);
+  --border-medium:        rgba(255, 255, 255, 0.10);
+  --border-hover:         rgba(255, 255, 255, 0.14);
+  --border-focus:         rgba(99, 102, 241, 0.5);
 
-  /* Shadows - Ambient & Smooth */
-  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 12px 30px -8px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.15);
+  /* ── Spacing ── */
+  --spacing-xs:   0.35rem;
+  --spacing-sm:   0.75rem;
+  --spacing-md:   1.25rem;
+  --spacing-lg:   2rem;
+  --spacing-xl:   3rem;
+  --spacing-2xl:  4rem;
 
-  /* Transitions */
-  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* ── Radius ── */
+  --radius-xs:    0.375rem;
+  --radius-sm:    0.5rem;
+  --radius-md:    0.875rem;
+  --radius-lg:    1.25rem;
+  --radius-xl:    1.75rem;
+  --radius-full:  9999px;
+
+  /* ── Shadows ── */
+  --shadow-xs:    0 1px 3px rgba(0,0,0,0.2);
+  --shadow-sm:    0 4px 12px -2px rgba(0,0,0,0.35);
+  --shadow-md:    0 8px 24px -4px rgba(0,0,0,0.5);
+  --shadow-lg:    0 16px 40px -8px rgba(0,0,0,0.65);
+  --shadow-2xl:   0 24px 64px -12px rgba(0,0,0,0.8);
+  --shadow-glow:  0 0 40px rgba(99,102,241,0.18);
+  --shadow-glow-success: 0 0 30px rgba(16,185,129,0.2);
+  --shadow-glow-danger:  0 0 30px rgba(239,68,68,0.2);
+
+  /* ── Transitions ── */
+  --transition-fast:      0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base:      0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth:    0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring:    0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-* {
+/* ── Reset ── */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* ── Body ── */
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-dark);
   color: var(--text-primary);
   line-height: 1.6;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
-  /* Premium Mesh Gradient Background */
   background-image:
-    radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 90% 10%, rgba(168, 85, 247, 0.06) 0%, transparent 40%),
-    radial-gradient(circle at 50% 110%, rgba(16, 185, 129, 0.03) 0%, transparent 40%);
+    radial-gradient(ellipse at 0% 0%, rgba(99,102,241,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 5%, rgba(168,85,247,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.04) 0%, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -86,21 +129,156 @@ button {
   transition: var(--transition-fast);
 }
 
-/* Scrollbar - Minimalist */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+input, select, textarea {
+  font-family: inherit;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255,255,255,0.08);
   border-radius: 100px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.16);
+}
+
+/* ── Animation Utilities ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes progressFill {
+  from { width: 0%; }
+  to   { width: var(--progress-target, 100%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
+  50%       { box-shadow: 0 0 40px rgba(99,102,241,0.6); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-8px); opacity: 1; }
+}
+
+/* ── Utility Classes ── */
+.animate-fade-in       { animation: fadeIn 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-fade-in-scale { animation: fadeInScale 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-slide-up      { animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* Stagger children */
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.30s; }
+
+/* ── Status Colors ── */
+.text-success { color: var(--accent-success); }
+.text-danger  { color: var(--accent-danger); }
+.text-warning { color: var(--accent-warning); }
+.text-muted   { color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+
+/* ── Gradient Text ── */
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Skeleton Loading ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+/* ── Chip / Badge ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.chip-success { background: var(--accent-success-dim); color: var(--accent-success); }
+.chip-danger  { background: var(--accent-danger-dim);  color: var(--accent-danger);  }
+.chip-warning { background: var(--accent-warning-dim); color: var(--accent-warning); }
+.chip-info    { background: var(--accent-info-dim);    color: var(--accent-info);    }
+.chip-purple  { background: var(--accent-secondary-dim); color: var(--accent-secondary); }
+.chip-default { background: rgba(255,255,255,0.07); color: var(--text-secondary); }
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: var(--spacing-md) 0;
+}
+
+/* ── Focus visible ── */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }

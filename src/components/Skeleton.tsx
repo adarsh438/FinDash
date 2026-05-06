@@ -1,52 +1,22 @@
 import React from 'react';
 
 interface SkeletonProps {
-    width?: string | number;
-    height?: string | number;
-    borderRadius?: string | number;
-    className?: string;
+    height?: number | string;
+    width?: number | string;
     style?: React.CSSProperties;
+    className?: string;
 }
 
 const Skeleton: React.FC<SkeletonProps> = ({
+    height = 20,
     width = '100%',
-    height = '20px',
-    borderRadius = '4px',
+    style,
     className = '',
-    style = {}
-}) => {
-    return (
-        <div
-            className={`skeleton-loader ${className}`}
-            style={{
-                width,
-                height,
-                borderRadius,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                position: 'relative',
-                overflow: 'hidden',
-                ...style
-            }}
-        >
-            <div
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    height: '100%',
-                    width: '100%',
-                    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent)',
-                    animation: 'shimmer 1.5s infinite',
-                }}
-            />
-            <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-        </div>
-    );
-};
+}) => (
+    <div
+        className={`skeleton ${className}`}
+        style={{ height, width, ...style }}
+    />
+);
 
 export default Skeleton;
