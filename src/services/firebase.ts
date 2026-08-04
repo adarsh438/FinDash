@@ -3,22 +3,13 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDzq08oHG8u0D0K94BYZH-OXfJ6YXsAKXs",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "findash-app-2f922.firebaseapp.com",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "findash-app-2f922",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "findash-app-2f922.firebasestorage.app",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "387615139835",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:387615139835:web:1926a43c23046456d0cd5e"
 };
-
-// Debug check for production
-if (!firebaseConfig.apiKey) {
-    console.error("Firebase API Key is missing! Make sure to set VITE_FIREBASE_API_KEY in your environment variables.");
-    // Optional: Visual alert if in window context to help user debug on Vercel
-    if (typeof window !== 'undefined') {
-        document.body.innerHTML = '<div style="color: red; padding: 20px;"><h1>Configuration Error</h1><p>Missing VITE_FIREBASE_API_KEY. Please check your deployment settings.</p></div>';
-    }
-}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
