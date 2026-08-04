@@ -19,6 +19,9 @@ function getAuthErrorMessage(error: any): { message: string; type: 'error' | 'in
             return { message: 'Popup blocked by browser. Please allow popups for this website.', type: 'error' };
         case 'auth/unauthorized-domain':
             return { message: `Domain "${window.location.hostname}" is not authorized. Add it in Firebase Console > Auth > Settings > Authorized Domains.`, type: 'error' };
+        case 'auth/api-key-not-valid':
+        case 'auth/invalid-api-key':
+            return { message: 'Firebase API key is propagating. Please wait 1 minute and refresh.', type: 'error' };
         case 'auth/operation-not-allowed':
             return { message: 'Google sign-in is not enabled. Enable it in Firebase Console > Auth > Sign-in method.', type: 'error' };
         case 'auth/invalid-credential':
