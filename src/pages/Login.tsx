@@ -5,22 +5,22 @@ import { useToast } from '../context/ToastContext';
 import { Eye, EyeOff, KeyRound, ArrowLeft, Mail } from 'lucide-react';
 import './Login.css';
 
-const IS_DEV = import.meta.env.DEV;
-
 function getAuthErrorMessage(error: any): { message: string; type: 'error' | 'info' } | null {
     const code = error?.code as string | undefined;
 
-    if (IS_DEV) {
-        console.error('[Auth] Raw error:', { code, message: error?.message, fullError: error });
-    }
+    console.error('[Auth Diagnostic Error]', { code, message: error?.message, fullError: error });
 
     switch (code) {
         case 'auth/popup-closed-by-user':
-            return { message: 'Sign in cancelled.', type: 'info' };
+            return { message: 'Google sign-in was cancelled.', type: 'info' };
         case 'auth/cancelled-popup-request':
             return null;
         case 'auth/popup-blocked':
-            return { message: 'Popup was blocked by your browser. Please allow popups or try again.', type: 'error' };
+            return { message: 'Popup blocked by browser. Please allow popups for this website.', type: 'error' };
+        case 'auth/unauthorized-domain':
+            return { message: `Domain "${window.location.hostname}" is not authorized. Add it in Firebase Console > Auth > Settings > Authorized Domains.`, type: 'error' };
+        case 'auth/operation-not-allowed':
+            return { message: 'Google sign-in is not enabled. Enable it in Firebase Console > Auth > Sign-in method.', type: 'error' };
         case 'auth/invalid-credential':
         case 'auth/user-not-found':
         case 'auth/wrong-password':
@@ -30,20 +30,16 @@ function getAuthErrorMessage(error: any): { message: string; type: 'error' | 'in
         case 'auth/weak-password':
             return { message: 'Password should be at least 6 characters long.', type: 'error' };
         case 'auth/too-many-requests':
-            return { message: 'Access blocked due to many failed attempts. Try resetting your password or wait a bit.', type: 'error' };
+            return { message: 'Too many attempts. Please wait a moment or reset your password.', type: 'error' };
         case 'auth/invalid-email':
             return { message: 'Please enter a valid email address.', type: 'error' };
         case 'auth/user-disabled':
-            return { message: 'This account has been disabled. Please contact support.', type: 'error' };
-        case 'auth/unauthorized-domain':
-            return { message: 'This domain is not authorized for sign-in.', type: 'error' };
-        case 'auth/operation-not-allowed':
-            return { message: 'This authentication method is not enabled. Please contact support.', type: 'error' };
+            return { message: 'This account has been disabled.', type: 'error' };
         case 'auth/account-exists-with-different-credential':
             return { message: 'An account already exists with this email using a different sign-in method.', type: 'error' };
         default:
             return {
-                message: error?.message || 'Authentication failed. Please try again.',
+                message: error?.message ? `Auth Error: ${error.message}` : 'Google authentication failed. Please try again or use email sign in.',
                 type: 'error'
             };
     }

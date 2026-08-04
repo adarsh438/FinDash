@@ -144,17 +144,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const loginWithGoogle = async () => {
         try {
-            await signInWithRedirect(auth, googleProvider);
-        } catch (redirectError: any) {
-            if (IS_DEV) {
-                console.warn('[Auth] signInWithRedirect failed, falling back to popup:', redirectError);
-            }
-            try {
-                await signInWithPopup(auth, googleProvider);
-            } catch (popupError: any) {
-                if (IS_DEV) {
-                    console.error('[Auth] signInWithPopup fallback failed:', popupError);
+            await signInWithPopup(auth, googleProvider);
+        } catch (popupError: any) {
+            console.error('[Auth] Google Sign-In popup error:', popupError);
+            if (popupError?.code === 'auth/popup-blocked') {
+                try {
+                    await signInWithRedirect(auth, googleProvider);
+                } catch (redirectError: any) {
+                    console.error('[Auth] Google Sign-In redirect fallback error:', redirectError);
+                    throw redirectError;
                 }
+            } else {
                 throw popupError;
             }
         }
