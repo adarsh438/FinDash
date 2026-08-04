@@ -1,67 +1,60 @@
 import React, { useState, useMemo } from 'react';
-import { CreditCard, Plus, Search, Filter, Trash2, HelpCircle, Coffee, Home, Bus, BookOpen, Tv, DollarSign } from 'lucide-react';
+import { CreditCard, Plus, Search, Filter, Trash2, HelpCircle, Coffee, Home, BookOpen, Tv, DollarSign, ShoppingBag, Heart, Briefcase, Plane, Package, Car } from 'lucide-react';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
-import Modal from '../components/Modal';
-import Input from '../components/Input';
 import EmptyState from '../components/EmptyState';
 import DonutChart from '../components/DonutChart';
-import { useAuth } from '../context/AuthContext';
+import ExpenseModal from '../components/expense/ExpenseModal';
 import { useExpenses } from '../context/ExpenseContext';
-import { expenseService, type ExpenseCategory } from '../services/expenseService';
+import { type ExpenseCategory } from '../services/expenseService';
 import { useCurrency } from '../context/CurrencyContext';
-import { useToast } from '../context/ToastContext';
 import './Expenses.css';
 
-const CATEGORIES: { value: ExpenseCategory; label: string; icon: any; color: string }[] = [
-    { value: 'food',            label: 'Food',           icon: Coffee,    color: '#f59e0b' },
-    { value: 'rent_hostel',     label: 'Rent / Hostel',  icon: Home,      color: '#8b5cf6' },
-    { value: 'travel',          label: 'Travel',         icon: Bus,       color: '#06b6d4' },
-    { value: 'subscriptions',   label: 'Subscriptions',  icon: Tv,        color: '#ec4899' },
-    { value: 'study_materials', label: 'Study',          icon: BookOpen,  color: '#f472b6' },
-    { value: 'income',          label: 'Income',         icon: DollarSign,color: '#10b981' },
-    { value: 'other',           label: 'Other',          icon: HelpCircle,color: '#64748b' },
+const CATEGORIES: { value: ExpenseCategory; label: string; icon: React.ElementType; color: string }[] = [
+    { value: 'food',            label: 'Food',           icon: Coffee,      color: '#f59e0b' },
+    { value: 'transport',       label: 'Transport',      icon: Car,         color: '#06b6d4' },
+    { value: 'shopping',        label: 'Shopping',       icon: ShoppingBag, color: '#ec4899' },
+    { value: 'entertainment',   label: 'Entertainment',  icon: Tv,          color: '#8b5cf6' },
+    { value: 'health',          label: 'Health',         icon: Heart,       color: '#ef4444' },
+    { value: 'rent',            label: 'Rent',           icon: Home,        color: '#6366f1' },
+    { value: 'education',       label: 'Education',      icon: BookOpen,    color: '#f472b6' },
+    { value: 'work',            label: 'Work',           icon: Briefcase,   color: '#14b8a6' },
+    { value: 'travel',          label: 'Travel',         icon: Plane,       color: '#3b82f6' },
+    { value: 'other',           label: 'Other',          icon: Package,     color: '#64748b' },
+    { value: 'income',          label: 'Income',         icon: DollarSign,  color: '#10b981' },
+    // Legacy aliases for backward compatibility
+    { value: 'rent_hostel',     label: 'Rent / Hostel',  icon: Home,        color: '#6366f1' },
+    { value: 'subscriptions',   label: 'Subscriptions',  icon: Tv,          color: '#8b5cf6' },
+    { value: 'study_materials', label: 'Study',          icon: BookOpen,    color: '#f472b6' },
 ];
 
+// Normalize legacy categories for display
+const normalizeCategory = (cat: ExpenseCategory): ExpenseCategory => {
+    if (cat === 'rent_hostel') return 'rent';
+    if (cat === 'subscriptions') return 'entertainment';
+    if (cat === 'study_materials') return 'education';
+    return cat;
+};
+
+// Filter categories shown in chips (exclude legacy and income)
+const FILTER_CATEGORIES = CATEGORIES.filter(c =>
+    !['rent_hostel', 'subscriptions', 'study_materials'].includes(c.value)
+);
+
 const Expenses = () => {
-    const { currentUser } = useAuth();
     const { formatCurrency } = useCurrency();
-    const { showToast } = useToast();
     const { expenses, loading, deleteExpense } = useExpenses();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [filterCat, setFilterCat] = useState<string>('all');
-    const [title, setTitle] = useState('');
-    const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState<ExpenseCategory>('food');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!currentUser) return;
-        setIsSubmitting(true);
-        try {
-            await expenseService.addExpense(currentUser.uid, {
-                title, amount: parseFloat(amount), category, date
-            });
-            setIsModalOpen(false);
-            showToast('Expense added!', 'success');
-            setTitle(''); setAmount(''); setCategory('food');
-            setDate(new Date().toISOString().split('T')[0]);
-        } catch (err: any) {
-            showToast(err.message || 'Failed to add expense', 'error');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const filtered = useMemo(() => {
         return expenses.filter(e => {
             const matchSearch = !search || e.title.toLowerCase().includes(search.toLowerCase());
-            const matchCat = filterCat === 'all' || e.category === filterCat;
+            const normalizedCat = normalizeCategory(e.category);
+            const matchCat = filterCat === 'all' || normalizedCat === filterCat || e.category === filterCat;
             return matchSearch && matchCat;
         });
     }, [expenses, search, filterCat]);
@@ -70,7 +63,8 @@ const Expenses = () => {
         return expenses
             .filter(e => e.category !== 'income')
             .reduce((acc, e) => {
-                acc[e.category] = (acc[e.category] || 0) + e.amount;
+                const normalized = normalizeCategory(e.category);
+                acc[normalized] = (acc[normalized] || 0) + e.amount;
                 return acc;
             }, {} as Record<string, number>);
     }, [expenses]);
@@ -113,7 +107,7 @@ const Expenses = () => {
                         className={`cat-chip ${filterCat === 'all' ? 'active' : ''}`}
                         onClick={() => setFilterCat('all')}
                     >All</button>
-                    {CATEGORIES.map(c => (
+                    {FILTER_CATEGORIES.map(c => (
                         <button
                             key={c.value}
                             className={`cat-chip ${filterCat === c.value ? 'active' : ''}`}
@@ -183,69 +177,53 @@ const Expenses = () => {
                             />
                         ) : (
                             <div className="expenses-list">
-                                {filtered.map((e) => (
-                                    <div key={e.id} className="expense-item">
-                                        <div className="expense-item-left">
-                                            <div
-                                                className="expense-item-icon"
-                                                style={{
-                                                    backgroundColor: `${CATEGORIES.find(c => c.value === e.category)?.color}18`
-                                                }}
-                                            >
-                                                {React.createElement(
-                                                    CATEGORIES.find(c => c.value === e.category)?.icon || HelpCircle,
-                                                    { size: 16, color: CATEGORIES.find(c => c.value === e.category)?.color }
-                                                )}
+                                {filtered.map((e) => {
+                                    const normalizedCat = normalizeCategory(e.category);
+                                    const catDef = CATEGORIES.find(c => c.value === normalizedCat) || CATEGORIES.find(c => c.value === e.category);
+                                    return (
+                                        <div key={e.id} className="expense-item">
+                                            <div className="expense-item-left">
+                                                <div
+                                                    className="expense-item-icon"
+                                                    style={{
+                                                        backgroundColor: `${catDef?.color || '#64748b'}18`
+                                                    }}
+                                                >
+                                                    {React.createElement(
+                                                        catDef?.icon || HelpCircle,
+                                                        { size: 16, color: catDef?.color || '#64748b' }
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="expense-item-title">{e.title}</div>
+                                                    <div className="expense-item-date">{e.date}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="expense-item-title">{e.title}</div>
-                                                <div className="expense-item-date">{e.date}</div>
+                                            <div className="expense-item-right">
+                                                <span className={`expense-item-amount ${e.category === 'income' ? 'income' : ''}`}>
+                                                    {e.category === 'income' ? '+' : '-'}{formatCurrency(e.amount)}
+                                                </span>
+                                                <button
+                                                    className="expense-delete-btn"
+                                                    onClick={() => e.id && deleteExpense(e.id)}
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="expense-item-right">
-                                            <span className={`expense-item-amount ${e.category === 'income' ? 'income' : ''}`}>
-                                                {e.category === 'income' ? '+' : '-'}{formatCurrency(e.amount)}
-                                            </span>
-                                            <button
-                                                className="expense-delete-btn"
-                                                onClick={() => e.id && deleteExpense(e.id)}
-                                            >
-                                                <Trash2 size={13} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </Card>
                 </div>
             )}
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Expense">
-                <form onSubmit={handleSubmit}>
-                    <Input label="Description" placeholder="e.g. Hostel Rent" value={title}
-                        onChange={e => setTitle(e.target.value)} required />
-                    <Input label="Amount" type="number" placeholder="0.00" value={amount}
-                        onChange={e => setAmount(e.target.value)} min="0.01" step="0.01" required />
-                    <Input label="Date" type="date" value={date}
-                        onChange={e => setDate(e.target.value)} required />
-                    <div className="input-group">
-                        <label className="input-label">Category</label>
-                        <select className="glass-input" value={category}
-                            onChange={e => setCategory(e.target.value as ExpenseCategory)}>
-                            {CATEGORIES.map(c => (
-                                <option key={c.value} value={c.value}>{c.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                        <Button type="button" variant="ghost" fullWidth onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" fullWidth loading={isSubmitting}>Save Expense</Button>
-                    </div>
-                </form>
-            </Modal>
+            {/* Premium Expense Modal */}
+            <ExpenseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </div>
     );
 };
 
 export default Expenses;
+

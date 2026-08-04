@@ -14,7 +14,11 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
-export type ExpenseCategory = 'food' | 'rent_hostel' | 'travel' | 'subscriptions' | 'study_materials' | 'income' | 'other';
+export type ExpenseCategory =
+    | 'food' | 'transport' | 'shopping' | 'entertainment' | 'health'
+    | 'rent' | 'education' | 'work' | 'travel' | 'other' | 'income'
+    // Legacy aliases (backward compat with existing Firestore data)
+    | 'rent_hostel' | 'subscriptions' | 'study_materials';
 
 export interface Expense {
     id?: string;
