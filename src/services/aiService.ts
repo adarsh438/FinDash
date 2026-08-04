@@ -1,7 +1,3 @@
-// This service acts as the "Brain" of the application.
-// It uses advanced heuristics to simulate AI insights while ensuring privacy.
-// Privacy Rule: The "reasoning" layer only receives aggregated stats, never raw transaction lists.
-
 import { type Expense } from './expenseService';
 
 export interface ChatMessage {
@@ -11,17 +7,27 @@ export interface ChatMessage {
     timestamp: Date;
 }
 
-interface FinancialHealth {
-    totalSpent: number;
-    highestCategory: { name: string; amount: number } | null;
-    categoryBreakdown: Record<string, number>;
-    savingsRateEstimate: number; // Mock estimation based on a fixed income assumption for now
-    monthOverMonthTrend: number; // Percentage change
+export interface FinancialHealthScore {
+    score: number; // 0 - 100
+    rating: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+    breakdown: {
+        budgetAdherence: number;
+        savingsRate: number;
+        spendingConsistency: number;
+    };
+    recommendation: string;
 }
 
-// PRIVACY-FIRST AGGREGATION
-// Transforms raw data into safe, anonymous statistics
-const aggregateData = (expenses: Expense[]): FinancialHealth => {
+interface AggregateResult {
+    totalSpent: number;
+    totalIncome: number;
+    highestCategory: { name: string; amount: number } | null;
+    categoryBreakdown: Record<string, number>;
+    savingsRateEstimate: number;
+    monthOverMonthTrend: number;
+}
+
+const aggregateData = (expenses: Expense[]): AggregateResult => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
@@ -32,25 +38,33 @@ const aggregateData = (expenses: Expense[]): FinancialHealth => {
 
     const lastMonthExpenses = expenses.filter(e => {
         const d = new Date(e.date);
-        // Handle Jan case
         const targetMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const targetYear = currentMonth === 0 ? currentYear - 1 : currentYear;
         return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
     });
 
-    const totalSpent = currentMonthExpenses.reduce((sum, item) => sum + (item.category !== 'income' ? item.amount : 0), 0);
-    const lastMonthTotal = lastMonthExpenses.reduce((sum, item) => sum + (item.category !== 'income' ? item.amount : 0), 0);
+    const totalIncome = currentMonthExpenses
+        .filter(e => e.type === 'income' || e.category === 'income')
+        .reduce((sum, item) => sum + item.amount, 0);
+
+    const totalSpent = currentMonthExpenses
+        .filter(e => e.type !== 'income' && e.category !== 'income')
+        .reduce((sum, item) => sum + item.amount, 0);
+
+    const lastMonthTotal = lastMonthExpenses
+        .filter(e => e.type !== 'income' && e.category !== 'income')
+        .reduce((sum, item) => sum + item.amount, 0);
 
     const trend = lastMonthTotal === 0 ? 0 : ((totalSpent - lastMonthTotal) / lastMonthTotal) * 100;
 
     const categories: Record<string, number> = {};
     currentMonthExpenses.forEach(item => {
-        if (item.category !== 'income') {
+        if (item.type !== 'income' && item.category !== 'income') {
             categories[item.category] = (categories[item.category] || 0) + item.amount;
         }
     });
 
-    let highestCategory = null;
+    let highestCategory: { name: string; amount: number } | null = null;
     let maxAmount = 0;
     Object.entries(categories).forEach(([cat, amount]) => {
         if (amount > maxAmount) {
@@ -59,13 +73,12 @@ const aggregateData = (expenses: Expense[]): FinancialHealth => {
         }
     });
 
-    // Heuristic: Assume a base income of 50000 or derive from 'income' category if exists (omitted for safety, using heuristic)
-    // For this version, we'll calculate savings rate based on a logical heuristic relative to spending
-    const assumedIncome = Math.max(totalSpent * 1.2, 50000); // Dynamic assumption
-    const savingsRate = ((assumedIncome - totalSpent) / assumedIncome) * 100;
+    const assumedIncome = totalIncome > 0 ? totalIncome : Math.max(totalSpent * 1.25, 50000);
+    const savingsRate = assumedIncome > 0 ? Math.max(0, ((assumedIncome - totalSpent) / assumedIncome) * 100) : 0;
 
     return {
         totalSpent,
+        totalIncome,
         highestCategory,
         categoryBreakdown: categories,
         savingsRateEstimate: savingsRate,
@@ -74,73 +87,100 @@ const aggregateData = (expenses: Expense[]): FinancialHealth => {
 };
 
 export const aiService = {
-    generateResponse: async (message: string, context: { expenses: Expense[] }): Promise<string> => {
-        // Simulate network delay for "thinking" effect
-        await new Promise(resolve => setTimeout(resolve, 1200));
+    // Calculate 0-100 Financial Health Score
+    calculateHealthScore: (expenses: Expense[], budgetAmount: number = 0): FinancialHealthScore => {
+        const data = aggregateData(expenses);
 
-        // 1. PRIVACY STEP: Aggregate data first
+        let budgetScore = 80;
+        if (budgetAmount > 0) {
+            const ratio = data.totalSpent / budgetAmount;
+            if (ratio <= 0.8) budgetScore = 100;
+            else if (ratio <= 1.0) budgetScore = 80;
+            else if (ratio <= 1.2) budgetScore = 50;
+            else budgetScore = 20;
+        }
+
+        let savingsScore = 60;
+        if (data.savingsRateEstimate >= 30) savingsScore = 100;
+        else if (data.savingsRateEstimate >= 20) savingsScore = 85;
+        else if (data.savingsRateEstimate >= 10) savingsScore = 65;
+        else savingsScore = 30;
+
+        let consistencyScore = 80;
+        if (data.monthOverMonthTrend > 25) consistencyScore = 40;
+        else if (data.monthOverMonthTrend < -10) consistencyScore = 95;
+
+        const overall = Math.round((budgetScore * 0.4) + (savingsScore * 0.4) + (consistencyScore * 0.2));
+
+        let rating: FinancialHealthScore['rating'] = 'Good';
+        let recommendation = 'Your financial health is stable. Keep tracking regularly!';
+
+        if (overall >= 85) {
+            rating = 'Excellent';
+            recommendation = 'Outstanding money management! Consider investing extra savings into long-term assets.';
+        } else if (overall >= 70) {
+            rating = 'Good';
+            recommendation = 'You are on a strong track. A tiny reduction in discretionary spending will boost your savings further.';
+        } else if (overall >= 50) {
+            rating = 'Fair';
+            recommendation = 'Your budget is a bit tight this month. Try setting strict category budgets for food and entertainment.';
+        } else {
+            rating = 'Poor';
+            recommendation = 'Spending exceeds optimal thresholds. Review top category outflows to avoid debt accumulation.';
+        }
+
+        return {
+            score: overall,
+            rating,
+            breakdown: {
+                budgetAdherence: Math.round(budgetScore),
+                savingsRate: Math.round(savingsScore),
+                spendingConsistency: Math.round(consistencyScore)
+            },
+            recommendation
+        };
+    },
+
+    generateResponse: async (message: string, context: { expenses: Expense[] }): Promise<string> => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         const health = aggregateData(context.expenses || []);
         const lowerMsg = message.toLowerCase();
 
-        // 2. REASONING ENGINE (Heuristics)
-
-        // GREETING
         if (lowerMsg.includes('hello') || lowerMsg.includes('hi') || lowerMsg.includes('hey')) {
-            return "Hello! I'm your AI Finance Coach. I've analyzed your latest data. Ask me about your spending, trends, or savings!";
+            return "Hello! I'm your AI Finance Coach. Ask me about your spending, health score, or savings strategies!";
         }
 
-        // SPENDING OVERVIEW
         if (lowerMsg.includes('spend') || lowerMsg.includes('cost') || lowerMsg.includes('much')) {
             if (health.totalSpent === 0) {
-                return "I don't see any spending data for this month yet. Tracking your first expense is the best way to start!";
+                return "I don't see any spending data for this month yet. Log your first expense to get real-time insights!";
             }
 
             let response = `This month, you've spent **₹${health.totalSpent.toFixed(0)}**.`;
-
             if (health.monthOverMonthTrend > 10) {
-                response += ` ⚠️ That's ${health.monthOverMonthTrend.toFixed(0)}% higher than last month. Keep an eye on it!`;
+                response += ` ⚠️ That's ${health.monthOverMonthTrend.toFixed(0)}% higher than last month.`;
             } else if (health.monthOverMonthTrend < -10) {
-                response += ` 📉 That's ${Math.abs(health.monthOverMonthTrend).toFixed(0)}% lower than last month. Great job cutting back!`;
+                response += ` 📉 That's ${Math.abs(health.monthOverMonthTrend).toFixed(0)}% lower than last month. Great job!`;
             } else {
-                response += ` You're pretty much on track with last month's spending.`;
+                response += ` Your spending is consistent with last month.`;
             }
             return response;
         }
 
-        // SAVINGS & INVESTMENT ADVICE (Prioritized)
-        if (lowerMsg.includes('save') || lowerMsg.includes('saving') || lowerMsg.includes('invest') || lowerMsg.includes('profit')) {
-            // Specific investment advice
-            if (lowerMsg.includes('invest') || lowerMsg.includes('profit')) {
-                return "For students and beginners, low-risk investments are best. Consider: 1. **Index Funds/SIPs** (for long-term growth), 2. **Recurring Deposits (RD)** (safe & steady), or 3. **Digital Gold**. *Always do your own research before investing!*";
-            }
-
+        if (lowerMsg.includes('save') || lowerMsg.includes('saving') || lowerMsg.includes('invest')) {
             if (health.savingsRateEstimate < 10) {
-                return "Based on your spending, your estimated savings rate is a bit tight (< 10%). Try the 50/30/20 rule: Aim to save at least 20% of your income. Cutting down on your top category might help!";
-            } else if (health.savingsRateEstimate > 30) {
-                return "You're doing fantastic! Your estimated savings rate is robust (> 30%). You might want to consider investing the surplus into diverse assets to beat inflation.";
+                return "Your estimated savings rate is below 10%. Try the 50/30/20 budget framework: Allocate 50% for needs, 30% for wants, and 20% directly into savings.";
             } else {
-                return "You're in a healthy savings zone. To optimize further, review your recurring subscriptions or small daily purchases.";
+                return `Great job! Your savings rate is around **${health.savingsRateEstimate.toFixed(0)}%**. Consider investing surplus funds into index funds or SIPs.`;
             }
         }
 
-        // CATEGORY ANALYSIS
-        if (lowerMsg.includes('category') || (lowerMsg.includes('where') && lowerMsg.includes('money')) || lowerMsg.includes('spent on')) {
-            if (!health.highestCategory) return "I need more data to spot category trends.";
-
-            return `Your top spending category is **${health.highestCategory.name}** at ₹${health.highestCategory.amount.toFixed(0)}. This makes up about ${((health.highestCategory.amount / health.totalSpent) * 100).toFixed(0)}% of your total outflows.`;
+        if (lowerMsg.includes('category') || lowerMsg.includes('where') || lowerMsg.includes('spent on')) {
+            const topCat = health.highestCategory;
+            if (!topCat) return "I need more expense records to determine category breakdowns.";
+            return `Your largest spending category is **${topCat.name}** at ₹${topCat.amount.toFixed(0)}, comprising ${((topCat.amount / health.totalSpent) * 100).toFixed(0)}% of total outflows.`;
         }
 
-        // ANALYSIS / OBSERVATION
-        if (lowerMsg.includes('analyze') || lowerMsg.includes('analysis') || lowerMsg.includes('insight') || lowerMsg.includes('doing')) {
-            const tips = [
-                health.highestCategory ? `Pro Tip: You spent ₹${health.highestCategory.amount.toFixed(0)} on ${health.highestCategory.name}. Reducing this by just 10% could save you ₹${(health.highestCategory.amount * 0.1).toFixed(0)}.` : "Track more expenses to get specific category tips.",
-                "I noticed your transaction frequency is higher on weekends. Watch out for 'impulse buys' on Saturdays!",
-                "Small daily expenses act like 'termites' for your wealth. They eat it away silently.",
-            ];
-            return tips[Math.floor(Math.random() * tips.length)];
-        }
-
-        // FALLBACK
-        return "I can help you analyze your spending habits. Try asking: 'How much did I spend?', 'Where is my money going?', or 'How can I save more?'.";
+        return "I analyzed your financial metrics. Ask me: 'How much did I spend?', 'What is my top category?', or 'How can I increase my savings?'.";
     }
 };

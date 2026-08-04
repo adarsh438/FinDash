@@ -19,18 +19,14 @@ service cloud.firestore {
       // Allow create: standard creation
       allow create: if isSelf(userId);
       
-      // Allow update: BUT restrict modifying 'role', 'isPremium', 'premiumActivatedAt'
-      // effectively making them read-only for the client (except via backend/mock flow).
-      // For the MOCK FLOW (Client-side upgrade), we will temporarily allow it if premiumSource is 'dev'.
-      // In a real production environment with a backend, we would BLOCK 'role' updates entirely from client.
+      // Allow update: restrict modifying 'role', 'isPremium' unless dev/manual override
       allow update: if isSelf(userId) 
                     && (
-                      // 1. Normal update (not touching premium fields)
                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isPremium', 'premiumActivatedAt']))
                       ||
-                      // 2. Dev Mode Exception: Allow upgrade if source is 'dev' or 'manual'
                       (request.resource.data.premiumSource == 'dev' || request.resource.data.premiumSource == 'manual')
                     );
+      allow delete: if isSelf(userId);
     }
 
     // --- Expenses Collection ---
@@ -53,6 +49,15 @@ service cloud.firestore {
 
     // --- Budgets Collection ---
     match /budgets/{budgetId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid 
+                    && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Bills Collection ---
+    match /bills/{billId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid 

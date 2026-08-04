@@ -34,6 +34,7 @@
     border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
     overflow: hidden;
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     min-height: 0;
 }
@@ -197,3 +198,93 @@
 }
 
 .coach-textarea::placeholder { color: rgba(255,255,255,0.18); }
+
+/* Health Score Banner */
+.health-score-banner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.06));
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.score-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    flex-shrink: 0;
+}
+
+.score-number {
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.score-max {
+    font-size: 0.65rem;
+    opacity: 0.8;
+}
+
+.health-score-details {
+    flex: 1;
+}
+
+.health-score-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.2rem;
+}
+
+.health-score-title-row h3 {
+    font-size: var(--font-base);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.rating-tag {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+
+.rating-tag.excellent { color: #10b981; }
+.rating-tag.good { color: #6366f1; }
+.rating-tag.fair { color: #f59e0b; }
+.rating-tag.poor { color: #ef4444; }
+
+.health-recommendation {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    margin-bottom: 0.6rem;
+}
+
+.health-metrics-row {
+    display: flex;
+    gap: 1.25rem;
+}
+
+.metric-item {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.metric-item strong {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+}

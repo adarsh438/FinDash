@@ -10,16 +10,18 @@ import Layout from './components/Layout';
 import OnboardingTour from './components/OnboardingTour';
 
 // Lazy load pages for performance
-const Dashboard    = lazy(() => import('./pages/Dashboard'));
-const Expenses     = lazy(() => import('./pages/Expenses'));
-const Transactions = lazy(() => import('./pages/Transactions'));
-const AICoach      = lazy(() => import('./pages/AICoach'));
-const Bills        = lazy(() => import('./pages/Bills'));
-const Goals        = lazy(() => import('./pages/Goals'));
-const Paywall      = lazy(() => import('./pages/Paywall'));
-const Analytics    = lazy(() => import('./pages/Analytics'));
-const Settings     = lazy(() => import('./pages/Settings'));
-const Groups       = lazy(() => import('./pages/Groups'));
+const Dashboard      = lazy(() => import('./pages/Dashboard'));
+const Expenses       = lazy(() => import('./pages/Expenses'));
+const Transactions   = lazy(() => import('./pages/Transactions'));
+const AICoach        = lazy(() => import('./pages/AICoach'));
+const Bills          = lazy(() => import('./pages/Bills'));
+const Goals          = lazy(() => import('./pages/Goals'));
+const Paywall        = lazy(() => import('./pages/Paywall'));
+const Analytics      = lazy(() => import('./pages/Analytics'));
+const Settings       = lazy(() => import('./pages/Settings'));
+const Groups         = lazy(() => import('./pages/Groups'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const NotFound       = lazy(() => import('./pages/NotFound'));
 
 // Premium loading spinner
 const PageLoader = () => (
@@ -40,7 +42,7 @@ const PageLoader = () => (
   </div>
 );
 
-// ProtectedRoute — wraps authed routes with ExpenseProvider (single Firestore listener)
+// ProtectedRoute — wraps authed routes with ExpenseProvider
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, loading } = useAuth();
 
@@ -78,7 +80,9 @@ function App() {
               <Route path="premium"      element={<Paywall />} />
               <Route path="analytics"    element={<Analytics />} />
               <Route path="settings"     element={<Settings />} />
+              <Route path="admin"        element={<AdminDashboard />} />
             </Route>
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </ToastProvider>

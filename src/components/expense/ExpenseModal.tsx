@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Repeat } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useToast } from '../../context/ToastContext';
-import { expenseService, type ExpenseCategory } from '../../services/expenseService';
+import { expenseService, type ExpenseCategory, type IncomeCategory } from '../../services/expenseService';
 import AmountInput from './AmountInput';
 import QuickAmountButtons from './QuickAmountButtons';
 import RecentExpenseChips from './RecentExpenseChips';
@@ -22,7 +22,15 @@ import './ExpenseModal.css';
 interface ExpenseModalProps {
     isOpen: boolean;
     onClose: () => void;
+    editingExpense?: Expense | null;
 }
+
+const INCOME_CATEGORIES: { value: IncomeCategory; label: string; emoji: string }[] = [
+    { value: 'salary', label: 'Salary', emoji: '💼' },
+    { value: 'freelance', label: 'Freelance', emoji: '💻' },
+    { value: 'investments', label: 'Investments', emoji: '📈' },
+    { value: 'other', label: 'Other Income', emoji: '💵' },
+];
 
 const overlayVariants = {
     hidden: { opacity: 0 },
@@ -60,20 +68,26 @@ const mobileModalVariants = {
     },
 };
 
-const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
+const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExpense }) => {
     const { currentUser } = useAuth();
-    const { expenses, budget, currentMonthSpend } = useExpenses();
+    const { expenses, budget, currentMonthSpend, updateExpense } = useExpenses();
     const { showToast } = useToast();
+
+    // Type toggle
+    const [txType, setTxType] = useState<'expense' | 'income'>('expense');
 
     // Form state
     const [amount, setAmount] = useState('');
     const [title, setTitle] = useState('');
     const [category, setCategory] = useState<ExpenseCategory>('food');
+    const [incomeCategory, setIncomeCategory] = useState<IncomeCategory>('salary');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
     const [notes, setNotes] = useState('');
     const [tags, setTags] = useState<string[]>([]);
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurringPeriod, setRecurringPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
 
     // UI state
     const [showOptional, setShowOptional] = useState(false);
@@ -83,6 +97,26 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
 
     // Validation state
     const [errors, setErrors] = useState<{ amount?: string; title?: string; category?: string }>({});
+
+    // Populate editing state if editing
+    useEffect(() => {
+        if (editingExpense && isOpen) {
+            setTxType(editingExpense.type === 'income' || editingExpense.category === 'income' ? 'income' : 'expense');
+            setAmount(editingExpense.amount.toString());
+            setTitle(editingExpense.title || '');
+            setCategory(editingExpense.category || 'food');
+            setIncomeCategory(editingExpense.incomeCategory || 'salary');
+            setDate(editingExpense.date || new Date().toISOString().split('T')[0]);
+            setPaymentMethod(editingExpense.paymentMethod || 'upi');
+            setNotes(editingExpense.notes || '');
+            setTags(editingExpense.tags || []);
+            setIsRecurring(editingExpense.isRecurring || false);
+            setRecurringPeriod(editingExpense.recurringPeriod || 'monthly');
+            if (editingExpense.notes || editingExpense.tags?.length) {
+                setShowOptional(true);
+            }
+        }
+    }, [editingExpense, isOpen]);
 
     // Check mobile
     useEffect(() => {
@@ -115,14 +149,18 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
     }, [isOpen, onClose]);
 
     const resetForm = useCallback(() => {
+        setTxType('expense');
         setAmount('');
         setTitle('');
         setCategory('food');
+        setIncomeCategory('salary');
         setDate(new Date().toISOString().split('T')[0]);
         setPaymentMethod('upi');
         setNotes('');
         setTags([]);
         setReceiptFile(null);
+        setIsRecurring(false);
+        setRecurringPeriod('monthly');
         setShowOptional(false);
         setErrors({});
         setShowSuccess(false);
@@ -141,7 +179,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
             newErrors.amount = 'Enter a valid amount greater than ₹0';
         }
         if (!title.trim()) {
-            newErrors.title = 'Expense name is required';
+            newErrors.title = txType === 'income' ? 'Income source is required' : 'Expense name is required';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -153,19 +191,34 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
 
         setIsSubmitting(true);
         try {
-            await expenseService.addExpense(currentUser.uid, {
+            const payload = {
                 title: title.trim(),
                 amount: parseFloat(amount),
-                category,
+                type: txType,
+                category: txType === 'income' ? 'income' as ExpenseCategory : category,
+                incomeCategory: txType === 'income' ? incomeCategory : undefined,
+                paymentMethod,
                 date,
-            });
-            setShowSuccess(true);
-            setTimeout(() => {
+                notes: notes.trim() || undefined,
+                tags: tags.length ? tags : undefined,
+                isRecurring,
+                recurringPeriod: isRecurring ? recurringPeriod : undefined
+            };
+
+            if (editingExpense && editingExpense.id) {
+                await updateExpense(editingExpense.id, payload);
+                showToast(txType === 'income' ? 'Income updated!' : 'Expense updated!', 'success');
                 handleClose();
-                showToast('Expense added!', 'success');
-            }, 1500);
+            } else {
+                await expenseService.addExpense(currentUser.uid, payload);
+                setShowSuccess(true);
+                setTimeout(() => {
+                    handleClose();
+                    showToast(txType === 'income' ? 'Income added!' : 'Expense added!', 'success');
+                }, 1500);
+            }
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to add expense';
+            const errorMessage = err instanceof Error ? err.message : 'Transaction failed';
             showToast(errorMessage, 'error');
         } finally {
             setIsSubmitting(false);
@@ -191,7 +244,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
     };
 
     const pendingAmount = parseFloat(amount) || 0;
-    const selectedCategoryLabel = CATEGORIES.find(c => c.value === category)?.label || category;
+    const selectedCategoryLabel = txType === 'income'
+        ? (INCOME_CATEGORIES.find(c => c.value === incomeCategory)?.label || 'Income')
+        : (CATEGORIES.find(c => c.value === category)?.label || category);
 
     return createPortal(
         <AnimatePresence>
@@ -213,7 +268,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                         onClick={(e) => e.stopPropagation()}
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Add Expense"
+                        aria-label={editingExpense ? "Edit Transaction" : "Add Transaction"}
                     >
                         {/* Success Overlay */}
                         <AnimatePresence>
@@ -228,7 +283,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                         {/* Header */}
                         <div className="expense-modal-header">
                             <h2>
-                                <span>💸</span> Add Expense
+                                <span>{txType === 'income' ? '💰' : '💸'}</span>{' '}
+                                {editingExpense ? (txType === 'income' ? 'Edit Income' : 'Edit Expense') : (txType === 'income' ? 'Add Income' : 'Add Expense')}
                             </h2>
                             <button
                                 className="expense-modal-close"
@@ -237,6 +293,24 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                 type="button"
                             >
                                 <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Income / Expense Toggle */}
+                        <div className="tx-type-toggle-bar" style={{ padding: '0 1.5rem 0.5rem' }}>
+                            <button
+                                className={`tx-toggle-btn ${txType === 'expense' ? 'active-expense' : ''}`}
+                                onClick={() => setTxType('expense')}
+                                type="button"
+                            >
+                                💸 Expense
+                            </button>
+                            <button
+                                className={`tx-toggle-btn ${txType === 'income' ? 'active-income' : ''}`}
+                                onClick={() => setTxType('income')}
+                                type="button"
+                            >
+                                💰 Income
                             </button>
                         </div>
 
@@ -260,21 +334,25 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                 />
                             </div>
 
-                            {/* Recent Expenses */}
-                            <RecentExpenseChips
-                                expenses={expenses}
-                                onSelect={handleRecentSelect}
-                            />
+                            {/* Recent Expenses (Only for expenses) */}
+                            {txType === 'expense' && (
+                                <RecentExpenseChips
+                                    expenses={expenses}
+                                    onSelect={handleRecentSelect}
+                                />
+                            )}
 
-                            {/* Expense Name */}
+                            {/* Title / Description */}
                             <div>
-                                <p className="expense-section-label">📝 Expense Name</p>
+                                <p className="expense-section-label">
+                                    {txType === 'income' ? '💵 Income Source' : '📝 Expense Name'}
+                                </p>
                                 <motion.input
                                     className={`expense-name-input ${errors.title ? 'field-error-input' : ''}`}
-                                    placeholder="e.g. Coffee, Groceries, Netflix..."
+                                    placeholder={txType === 'income' ? 'e.g. Monthly Salary, Freelance Work...' : 'e.g. Coffee, Groceries, Netflix...'}
                                     value={title}
                                     onChange={(e) => { setTitle(e.target.value); setErrors(er => ({ ...er, title: undefined })); }}
-                                    aria-label="Expense name"
+                                    aria-label="Transaction title"
                                     animate={errors.title ? { x: [0, -4, 4, -3, 3, 0] } : {}}
                                     transition={{ duration: 0.3 }}
                                 />
@@ -287,18 +365,39 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                         {errors.title}
                                     </motion.p>
                                 )}
-                                <SmartSuggestions
-                                    title={title}
-                                    onApply={handleSmartApply}
-                                />
+                                {txType === 'expense' && (
+                                    <SmartSuggestions
+                                        title={title}
+                                        onApply={handleSmartApply}
+                                    />
+                                )}
                             </div>
 
-                            {/* Category */}
-                            <CategorySelector
-                                selected={category}
-                                onChange={(c) => { setCategory(c); setErrors(e => ({ ...e, category: undefined })); }}
-                                error={errors.category}
-                            />
+                            {/* Category Selector */}
+                            {txType === 'expense' ? (
+                                <CategorySelector
+                                    selected={category}
+                                    onChange={(c) => { setCategory(c); setErrors(e => ({ ...e, category: undefined })); }}
+                                    error={errors.category}
+                                />
+                            ) : (
+                                <div>
+                                    <p className="expense-section-label">🏷️ Income Category</p>
+                                    <div className="category-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                                        {INCOME_CATEGORIES.map(ic => (
+                                            <button
+                                                key={ic.value}
+                                                type="button"
+                                                className={`category-card ${incomeCategory === ic.value ? 'selected' : ''}`}
+                                                onClick={() => setIncomeCategory(ic.value)}
+                                            >
+                                                <span className="category-emoji">{ic.emoji}</span>
+                                                <span className="category-label">{ic.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Date + Payment Method Row */}
                             <div className="expense-row-2">
@@ -309,7 +408,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                         type="date"
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
-                                        aria-label="Expense date"
+                                        aria-label="Transaction date"
                                     />
                                 </div>
                                 <PaymentMethodSelector
@@ -318,12 +417,40 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                 />
                             </div>
 
-                            {/* Budget Progress */}
-                            <BudgetProgress
-                                budget={budget}
-                                currentMonthSpend={currentMonthSpend}
-                                pendingAmount={pendingAmount}
-                            />
+                            {/* Recurring Transaction Toggle */}
+                            <div className="recurring-toggle-row">
+                                <label className="remember-me-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={isRecurring}
+                                        onChange={(e) => setIsRecurring(e.target.checked)}
+                                    />
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
+                                        <Repeat size={14} /> Recurring Transaction
+                                    </span>
+                                </label>
+                                {isRecurring && (
+                                    <select
+                                        className="glass-input"
+                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                                        value={recurringPeriod}
+                                        onChange={(e) => setRecurringPeriod(e.target.value as any)}
+                                    >
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                )}
+                            </div>
+
+                            {/* Budget Progress (Only for expenses) */}
+                            {txType === 'expense' && (
+                                <BudgetProgress
+                                    budget={budget}
+                                    currentMonthSpend={currentMonthSpend}
+                                    pendingAmount={pendingAmount}
+                                />
+                            )}
 
                             {/* Optional Fields Toggle */}
                             <button
@@ -352,7 +479,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                                 placeholder="Add optional notes..."
                                                 value={notes}
                                                 onChange={(e) => setNotes(e.target.value)}
-                                                aria-label="Expense notes"
+                                                aria-label="Transaction notes"
                                             />
                                         </div>
 
@@ -385,7 +512,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
                                 {isSubmitting ? (
                                     <span className="submit-spinner" />
                                 ) : (
-                                    '✨ Add Expense'
+                                    editingExpense ? 'Update Transaction' : (txType === 'income' ? '✨ Save Income' : '✨ Add Expense')
                                 )}
                             </button>
                         </div>

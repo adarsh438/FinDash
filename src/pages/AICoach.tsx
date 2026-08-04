@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User as UserIcon, Sparkles } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Send, Bot, User as UserIcon, Sparkles, Activity } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import UpgradeModal from '../components/UpgradeModal';
@@ -17,14 +17,14 @@ const PROMPT_CHIPS = [
 
 const AICoach = () => {
     const { userProfile } = useAuth();
-    const { expenses } = useExpenses();
+    const { expenses, budget } = useExpenses();
     const isPremium = userProfile?.isPremium;
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
     const [messages, setMessages] = useState<ChatMessage[]>([{
         id: 'init',
         text: isPremium
-            ? "Hi! I'm your AI Finance Coach. Ask me anything about your spending, trends, or savings goals!"
+            ? "Hi! I'm your AI Finance Coach. Ask me anything about your spending, trends, financial health, or savings goals!"
             : "Hi! I'm your AI Finance Coach. I can analyze your transactions and provide personalized insights. Try asking me a question below!",
         sender: 'ai',
         timestamp: new Date()
@@ -32,6 +32,11 @@ const AICoach = () => {
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Calculate Financial Health Score
+    const healthScore = useMemo(() => {
+        return aiService.calculateHealthScore(expenses, budget?.amount || 0);
+    }, [expenses, budget]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,8 +91,8 @@ const AICoach = () => {
     return (
         <div className="coach-page animate-fade-in">
             <PageHeader
-                title="AI Finance Coach"
-                subtitle="Your smart assistant for financial wisdom."
+                title="AI Finance Coach & Health Score"
+                subtitle="Personalized financial intelligence and health metrics."
                 icon={<Bot size={22} />}
             />
 
@@ -97,6 +102,37 @@ const AICoach = () => {
                     <span>You're on the free plan. <button onClick={() => setIsUpgradeOpen(true)}>Upgrade to Premium</button> for full AI access.</span>
                 </div>
             )}
+
+            {/* Financial Health Score Gauge Banner */}
+            <div className="health-score-banner animate-fade-in-scale">
+                <div className="health-score-gauge">
+                    <div className="score-circle">
+                        <span className="score-number">{healthScore.score}</span>
+                        <span className="score-max">/100</span>
+                    </div>
+                </div>
+                <div className="health-score-details">
+                    <div className="health-score-title-row">
+                        <Activity size={18} className="health-icon" />
+                        <h3>Financial Health: <span className={`rating-tag ${healthScore.rating.toLowerCase()}`}>{healthScore.rating}</span></h3>
+                    </div>
+                    <p className="health-recommendation">{healthScore.recommendation}</p>
+                    <div className="health-metrics-row">
+                        <div className="metric-item">
+                            <span>Budget Adherence</span>
+                            <strong>{healthScore.breakdown.budgetAdherence}%</strong>
+                        </div>
+                        <div className="metric-item">
+                            <span>Savings Rate</span>
+                            <strong>{healthScore.breakdown.savingsRate}%</strong>
+                        </div>
+                        <div className="metric-item">
+                            <span>Consistency</span>
+                            <strong>{healthScore.breakdown.spendingConsistency}%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div className="coach-chat-container">
                 {/* Messages */}

@@ -1,0 +1,19 @@
+.offline-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(239, 68, 68, 0.95);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: white;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-full, 9999px);
+    font-size: var(--font-xs, 0.75rem);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 9999;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+}

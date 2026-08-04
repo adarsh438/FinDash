@@ -7,8 +7,8 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -131,6 +131,7 @@
     padding: 1px;
     background: linear-gradient(135deg, transparent 40%, rgba(99, 102, 241, 0.2));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -225,6 +226,7 @@
     gap: 0.5rem;
     overflow-x: auto;
     padding-bottom: 0.25rem;
+    -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
@@ -958,6 +960,7 @@
     font-weight: 600;
     white-space: nowrap;
     pointer-events: none;
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
 }
 
@@ -1007,6 +1010,7 @@
     .payment-methods {
         overflow-x: auto;
         flex-wrap: nowrap;
+        -ms-overflow-style: none;
         scrollbar-width: none;
     }
 
@@ -1022,3 +1026,54 @@
         height: 52px;
     }
 }
+
+/* ── Transaction Type Toggle Bar ── */
+.tx-type-toggle-bar {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.tx-toggle-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.tx-toggle-btn.active-expense {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.35);
+    color: #ffffff;
+}
+
+.tx-toggle-btn.active-income {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #ffffff;
+}
+
+.recurring-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.85rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+

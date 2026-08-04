@@ -4,8 +4,8 @@
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
-    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
     overflow: hidden;
     transition: transform var(--transition-base),
                 box-shadow var(--transition-base),
