@@ -230,7 +230,9 @@
     scrollbar-width: none;
 }
 
-.recent-chips-row::-webkit-scrollbar { display: none; }
+.recent-chips-row::-webkit-scrollbar {
+    display: none;
+}
 
 .recent-chip {
     display: flex;
@@ -1014,7 +1016,9 @@
         scrollbar-width: none;
     }
 
-    .payment-methods::-webkit-scrollbar { display: none; }
+    .payment-methods::-webkit-scrollbar {
+        display: none;
+    }
 
     .fab-container {
         bottom: 20px;
@@ -1076,4 +1080,3 @@
     border-radius: 12px;
     font-size: 0.8rem;
 }
-

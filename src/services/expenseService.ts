@@ -53,6 +53,16 @@ export interface Budget {
     updatedAt: Timestamp;
 }
 
+function sanitizeData<T extends Record<string, any>>(data: T): Record<string, any> {
+    const clean: Record<string, any> = {};
+    Object.keys(data).forEach(key => {
+        if (data[key] !== undefined) {
+            clean[key] = data[key];
+        }
+    });
+    return clean;
+}
+
 const EXPENSES_COLLECTION = 'expenses';
 const BUDGETS_COLLECTION = 'budgets';
 
@@ -67,12 +77,16 @@ export const expenseService = {
                 throw new Error("Amount must be greater than 0");
             }
 
-            const docRef = await addDoc(collection(db, EXPENSES_COLLECTION), {
+            const rawData = {
                 ...expense,
                 userId,
                 type: expense.type || (expense.category === 'income' ? 'income' : 'expense'),
                 createdAt: Timestamp.now()
-            });
+            };
+
+            const cleanData = sanitizeData(rawData);
+
+            const docRef = await addDoc(collection(db, EXPENSES_COLLECTION), cleanData);
             return docRef.id;
         } catch (error) {
             console.error("Error adding transaction: ", error);
@@ -84,10 +98,11 @@ export const expenseService = {
     updateExpense: async (id: string, data: Partial<Omit<Expense, 'id' | 'userId' | 'createdAt'>>) => {
         try {
             const docRef = doc(db, EXPENSES_COLLECTION, id);
-            await updateDoc(docRef, {
+            const cleanData = sanitizeData({
                 ...data,
                 updatedAt: Timestamp.now()
             });
+            await updateDoc(docRef, cleanData);
         } catch (error) {
             console.error("Error updating transaction: ", error);
             throw error;
