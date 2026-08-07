@@ -34,7 +34,11 @@
     pointer-events: none;
 }
 
-.btn-full { width: 100%; }
+.btn-full {
+    width: 100%;
+    flex: 1 1 0%;
+    flex-shrink: 1;
+}
 
 /* Icon */
 .btn-icon {

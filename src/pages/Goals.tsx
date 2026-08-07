@@ -192,7 +192,7 @@ const Goals = () => {
                             ))}
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <div className="modal-actions">
                         <Button type="button" variant="ghost" fullWidth onClick={() => setIsAddOpen(false)}>Cancel</Button>
                         <Button type="submit" fullWidth loading={isSubmitting}>Create Goal</Button>
                     </div>

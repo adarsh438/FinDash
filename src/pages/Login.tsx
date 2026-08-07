@@ -111,6 +111,15 @@ const Login = () => {
 
     const handleGoogleSignIn = async () => {
         setGoogleLoading(true);
+
+        // Safety fallback: if user closes the popup window, reset loading when main tab regains focus
+        const handleFocus = () => {
+            setTimeout(() => {
+                setGoogleLoading(false);
+            }, 800);
+        };
+        window.addEventListener('focus', handleFocus, { once: true });
+
         try {
             await setRememberMe(rememberMe);
             await loginWithGoogle();
@@ -121,6 +130,7 @@ const Login = () => {
                 showToast(errorInfo.message, errorInfo.type);
             }
         } finally {
+            window.removeEventListener('focus', handleFocus);
             setGoogleLoading(false);
         }
     };
