@@ -14,6 +14,7 @@ import {
     limit
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { DEMO_EXPENSES } from './demoData';
 
 export type ExpenseCategory =
     | 'food' | 'transport' | 'shopping' | 'entertainment' | 'health'
@@ -66,6 +67,29 @@ function sanitizeData<T extends Record<string, any>>(data: T): Record<string, an
 const EXPENSES_COLLECTION = 'expenses';
 const BUDGETS_COLLECTION = 'budgets';
 
+let demoListeners: Array<(expenses: Expense[]) => void> = [];
+
+const getDemoExpenses = (): Expense[] => {
+    try {
+        const saved = localStorage.getItem('findash_demo_expenses');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error("Failed to load demo expenses from storage", e);
+    }
+    return DEMO_EXPENSES;
+};
+
+const saveDemoExpenses = (expenses: Expense[]) => {
+    try {
+        localStorage.setItem('findash_demo_expenses', JSON.stringify(expenses));
+    } catch (e) {
+        console.error("Failed to save demo expenses to storage", e);
+    }
+    demoListeners.forEach(cb => cb(expenses));
+};
+
 export const expenseService = {
     // Add a new expense / income
     addExpense: async (userId: string, expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
@@ -75,6 +99,20 @@ export const expenseService = {
             }
             if (expense.amount <= 0) {
                 throw new Error("Amount must be greater than 0");
+            }
+
+            if (userId === 'demo-user-123') {
+                const current = getDemoExpenses();
+                const newExp: Expense = {
+                    id: 'demo_' + Date.now(),
+                    userId: 'demo-user-123',
+                    ...expense,
+                    type: expense.type || (expense.category === 'income' ? 'income' : 'expense'),
+                    createdAt: Timestamp.now()
+                };
+                const updated = [newExp, ...current];
+                saveDemoExpenses(updated);
+                return newExp.id;
             }
 
             const rawData = {
@@ -97,6 +135,13 @@ export const expenseService = {
     // Update an existing expense / income
     updateExpense: async (id: string, data: Partial<Omit<Expense, 'id' | 'userId' | 'createdAt'>>) => {
         try {
+            if (id.startsWith('demo_') || id.startsWith('d')) {
+                const current = getDemoExpenses();
+                const updated = current.map(e => e.id === id ? { ...e, ...data } : e);
+                saveDemoExpenses(updated);
+                return;
+            }
+
             const docRef = doc(db, EXPENSES_COLLECTION, id);
             const cleanData = sanitizeData({
                 ...data,
@@ -126,25 +171,57 @@ export const expenseService = {
 
     // Subscribe to expenses for a user
     subscribeToExpenses: (userId: string, callback: (expenses: Expense[]) => void) => {
+        if (userId === 'demo-user-123') {
+            const current = getDemoExpenses();
+            callback(current);
+            demoListeners.push(callback);
+            return () => {
+                demoListeners = demoListeners.filter(cb => cb !== callback);
+            };
+        }
+
+        // Single field query (where userId == userId) to avoid needing composite index in Firestore
         const q = query(
             collection(db, EXPENSES_COLLECTION),
-            where("userId", "==", userId),
-            orderBy("date", "desc"),
-            orderBy("createdAt", "desc")
+            where("userId", "==", userId)
         );
 
-        return onSnapshot(q, (snapshot) => {
-            const expenses = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Expense));
-            callback(expenses);
-        });
+        return onSnapshot(
+            q,
+            (snapshot) => {
+                const expenses = snapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    } as Expense))
+                    .sort((a, b) => {
+                        const dateA = a.date || '';
+                        const dateB = b.date || '';
+                        if (dateA !== dateB) {
+                            return dateB.localeCompare(dateA);
+                        }
+                        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+                        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+                        return timeB - timeA;
+                    });
+                callback(expenses);
+            },
+            (error) => {
+                console.error("Error subscribing to expenses:", error);
+            }
+        );
     },
 
     // Delete an expense
     deleteExpense: async (expenseId: string) => {
         try {
+            if (expenseId.startsWith('demo_') || expenseId.startsWith('d')) {
+                const current = getDemoExpenses();
+                const updated = current.filter(e => e.id !== expenseId);
+                saveDemoExpenses(updated);
+                return;
+            }
+
             await deleteDoc(doc(db, EXPENSES_COLLECTION, expenseId));
         } catch (error) {
             console.error("Error deleting transaction: ", error);
