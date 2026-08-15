@@ -64,6 +64,17 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
+
+    // --- Conversations Collection ---
+    match /conversations/{conversationId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow read, create, update, delete: if isAuthenticated() && 
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+      }
+    }
     
     // Default deny
     match /{document=**} {

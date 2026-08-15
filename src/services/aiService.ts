@@ -1,4 +1,7 @@
 import { type Expense } from './expenseService';
+import { aiOrchestrator, type OrchestratorResponse } from './aiOrchestrator';
+import { type UserFinancialData } from './aiTools';
+import { type ConversationMessage } from './conversationService';
 
 export interface ChatMessage {
     id: string;
@@ -141,46 +144,13 @@ export const aiService = {
         };
     },
 
-    generateResponse: async (message: string, context: { expenses: Expense[] }): Promise<string> => {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const health = aggregateData(context.expenses || []);
-        const lowerMsg = message.toLowerCase();
-
-        if (lowerMsg.includes('hello') || lowerMsg.includes('hi') || lowerMsg.includes('hey')) {
-            return "Hello! I'm your AI Finance Coach. Ask me about your spending, health score, or savings strategies!";
-        }
-
-        if (lowerMsg.includes('spend') || lowerMsg.includes('cost') || lowerMsg.includes('much')) {
-            if (health.totalSpent === 0) {
-                return "I don't see any spending data for this month yet. Log your first expense to get real-time insights!";
-            }
-
-            let response = `This month, you've spent **₹${health.totalSpent.toFixed(0)}**.`;
-            if (health.monthOverMonthTrend > 10) {
-                response += ` ⚠️ That's ${health.monthOverMonthTrend.toFixed(0)}% higher than last month.`;
-            } else if (health.monthOverMonthTrend < -10) {
-                response += ` 📉 That's ${Math.abs(health.monthOverMonthTrend).toFixed(0)}% lower than last month. Great job!`;
-            } else {
-                response += ` Your spending is consistent with last month.`;
-            }
-            return response;
-        }
-
-        if (lowerMsg.includes('save') || lowerMsg.includes('saving') || lowerMsg.includes('invest')) {
-            if (health.savingsRateEstimate < 10) {
-                return "Your estimated savings rate is below 10%. Try the 50/30/20 budget framework: Allocate 50% for needs, 30% for wants, and 20% directly into savings.";
-            } else {
-                return `Great job! Your savings rate is around **${health.savingsRateEstimate.toFixed(0)}%**. Consider investing surplus funds into index funds or SIPs.`;
-            }
-        }
-
-        if (lowerMsg.includes('category') || lowerMsg.includes('where') || lowerMsg.includes('spent on')) {
-            const topCat = health.highestCategory;
-            if (!topCat) return "I need more expense records to determine category breakdowns.";
-            return `Your largest spending category is **${topCat.name}** at ₹${topCat.amount.toFixed(0)}, comprising ${((topCat.amount / health.totalSpent) * 100).toFixed(0)}% of total outflows.`;
-        }
-
-        return "I analyzed your financial metrics. Ask me: 'How much did I spend?', 'What is my top category?', or 'How can I increase my savings?'.";
+    // Process user query via central AI Orchestrator
+    generateResponse: async (
+        message: string,
+        history: ConversationMessage[],
+        financialData: UserFinancialData,
+        onChunk?: (chunk: string) => void
+    ): Promise<OrchestratorResponse> => {
+        return aiOrchestrator.processUserMessage(message, history, financialData, onChunk);
     }
 };

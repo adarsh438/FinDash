@@ -1,105 +1,222 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Bot, User as UserIcon, Sparkles, Activity } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Bot, Sparkles, Activity, Plus } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import Button from '../components/Button';
 import UpgradeModal from '../components/UpgradeModal';
 import { useAuth } from '../context/AuthContext';
 import { useExpenses } from '../context/ExpenseContext';
-import { aiService, type ChatMessage } from '../services/aiService';
+import { goalService, type Goal } from '../services/goalService';
+import { billService, type CustomBill } from '../services/billService';
+import { aiService, type FinancialHealthScore } from '../services/aiService';
+import { conversationService, type Conversation, type ConversationMessage } from '../services/conversationService';
+
+import ChatSidebar from '../components/ai/ChatSidebar';
+import ChatMessageItem from '../components/ai/ChatMessageItem';
+import ChatInputArea from '../components/ai/ChatInputArea';
+import PromptSuggestions from '../components/ai/PromptSuggestions';
+
 import './AICoach.css';
 
-const PROMPT_CHIPS = [
-    'How am I doing this month?',
-    'Where am I overspending?',
-    'How can I save more?',
-    'What\'s my biggest expense?',
-];
-
 const AICoach = () => {
-    const { userProfile } = useAuth();
+    const { currentUser, userProfile } = useAuth();
     const { expenses, budget } = useExpenses();
     const isPremium = userProfile?.isPremium;
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
-    const [messages, setMessages] = useState<ChatMessage[]>([{
-        id: 'init',
-        text: isPremium
-            ? "Hi! I'm your AI Finance Coach. Ask me anything about your spending, trends, financial health, or savings goals!"
-            : "Hi! I'm your AI Finance Coach. I can analyze your transactions and provide personalized insights. Try asking me a question below!",
-        sender: 'ai',
-        timestamp: new Date()
-    }]);
+    // Data states for complete financial context
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [bills, setBills] = useState<CustomBill[]>([]);
+
+    // Conversations state
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [activeConvId, setActiveConvId] = useState<string | null>(null);
+    const [messages, setMessages] = useState<ConversationMessage[]>([]);
+
+    // UI & Streaming state
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [inputValue, setInputValue] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [streamingText, setStreamingText] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const abortRef = useRef<boolean>(false);
+
+    // 1. Subscribe to Goals and Bills for full context
+    useEffect(() => {
+        if (!currentUser) return;
+        const unsubGoals = goalService.subscribeToGoals(currentUser.uid, setGoals);
+        const unsubBills = billService.subscribeToBills(currentUser.uid, setBills);
+
+        return () => {
+            unsubGoals();
+            unsubBills();
+        };
+    }, [currentUser]);
+
+    // 2. Subscribe to user conversations
+    useEffect(() => {
+        if (!currentUser) return;
+        const unsub = conversationService.subscribeToConversations(currentUser.uid, (list) => {
+            setConversations(list);
+            if (!activeConvId && list.length > 0) {
+                setActiveConvId(list[0].id);
+            }
+        });
+        return () => unsub();
+    }, [currentUser, activeConvId]);
+
+    // 3. Subscribe to active conversation messages
+    useEffect(() => {
+        if (!currentUser || !activeConvId) {
+            setMessages([]);
+            return;
+        }
+        const unsub = conversationService.subscribeToMessages(currentUser.uid, activeConvId, (msgs) => {
+            setMessages(msgs);
+        });
+        return () => unsub();
+    }, [currentUser, activeConvId]);
+
+    // Auto-scroll chat to bottom
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, streamingText, isGenerating]);
 
     // Calculate Financial Health Score
-    const healthScore = useMemo(() => {
+    const healthScore: FinancialHealthScore = useMemo(() => {
         return aiService.calculateHealthScore(expenses, budget?.amount || 0);
     }, [expenses, budget]);
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isTyping]);
+    // Handle New Conversation
+    const handleNewChat = async () => {
+        if (!currentUser) return;
+        const newConv = await conversationService.createConversation(currentUser.uid);
+        setActiveConvId(newConv.id);
+        setMessages([]);
+        setStreamingText('');
+    };
 
-    const handleSend = async (text?: string) => {
-        const msg = (text || inputValue).trim();
-        if (!msg) return;
+    // Handle Rename Conversation
+    const handleRenameConversation = async (id: string, newTitle: string) => {
+        if (!currentUser) return;
+        await conversationService.renameConversation(currentUser.uid, id, newTitle);
+    };
 
-        const userMsg: ChatMessage = {
-            id: Date.now().toString(), text: msg,
-            sender: 'user', timestamp: new Date()
-        };
-        setMessages(prev => [...prev, userMsg]);
-        setInputValue('');
-        setIsTyping(true);
-
-        if (!isPremium) {
-            setTimeout(() => {
-                setIsTyping(false);
-                setMessages(prev => [...prev, {
-                    id: (Date.now() + 1).toString(),
-                    text: "🔒 I've analyzed your recent transactions and found key insights about your spending patterns. Upgrade to Premium to unlock your full financial report and personalized advice!",
-                    sender: 'ai', timestamp: new Date()
-                }]);
-                setIsUpgradeOpen(true);
-            }, 1200);
-            return;
-        }
-
-        try {
-            const response = await aiService.generateResponse(msg, { expenses });
-            setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                text: response, sender: 'ai', timestamp: new Date()
-            }]);
-        } catch {
-            setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                text: "Sorry, I couldn't process that. Please try again.",
-                sender: 'ai', timestamp: new Date()
-            }]);
-        } finally {
-            setIsTyping(false);
+    // Handle Delete Conversation
+    const handleDeleteConversation = async (id: string) => {
+        if (!currentUser) return;
+        await conversationService.deleteConversation(currentUser.uid, id);
+        if (activeConvId === id) {
+            const remaining = conversations.filter(c => c.id !== id);
+            setActiveConvId(remaining.length > 0 ? remaining[0].id : null);
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    // Handle Send Message
+    const handleSend = async (textToSend?: string) => {
+        const text = (textToSend || inputValue).trim();
+        if (!text || !currentUser || isGenerating) return;
+
+        setInputValue('');
+        setIsGenerating(true);
+        setStreamingText('');
+        abortRef.current = false;
+
+        let convId = activeConvId;
+
+        // If no active conversation exists, create one dynamically
+        if (!convId) {
+            const newConv = await conversationService.createConversation(currentUser.uid, text);
+            convId = newConv.id;
+            setActiveConvId(convId);
+        }
+
+        // Add User Message to persistence
+        await conversationService.addMessage(currentUser.uid, convId, 'user', text);
+
+        // Premium plan check (Free users get upgrade prompt)
+        if (!isPremium) {
+            setTimeout(async () => {
+                setIsGenerating(false);
+                await conversationService.addMessage(
+                    currentUser.uid,
+                    convId!,
+                    'assistant',
+                    "🔒 I've analyzed your recent financial records and generated customized recommendations. Upgrade to Findash Premium to unlock full AI Copilot responses, multi-conversation history, and deep category insights!"
+                );
+                setIsUpgradeOpen(true);
+            }, 800);
+            return;
+        }
+
+        // Financial Data context packet for tool calling & context retrieval
+        const financialData = {
+            expenses,
+            goals,
+            bills,
+            budget
+        };
+
+        let currentStream = '';
+
+        try {
+            const response = await aiService.generateResponse(
+                text,
+                messages,
+                financialData,
+                (chunk) => {
+                    if (abortRef.current) return;
+                    currentStream += chunk;
+                    setStreamingText(currentStream);
+                }
+            );
+
+            if (!abortRef.current) {
+                // Save AI Assistant response to persistence
+                await conversationService.addMessage(
+                    currentUser.uid,
+                    convId,
+                    'assistant',
+                    response.text,
+                    response.toolsExecuted,
+                    response.insightCard
+                );
+            }
+        } catch (err) {
+            console.error('[Findash AI] Error generating response:', err);
+            await conversationService.addMessage(
+                currentUser.uid,
+                convId,
+                'assistant',
+                "Sorry, I encountered an issue retrieving your financial context. Please try asking again."
+            );
+        } finally {
+            setIsGenerating(false);
+            setStreamingText('');
+        }
+    };
+
+    const handleStopGenerating = () => {
+        abortRef.current = true;
+        setIsGenerating(false);
+        setStreamingText('');
     };
 
     return (
         <div className="coach-page animate-fade-in">
             <PageHeader
-                title="AI Finance Coach & Health Score"
-                subtitle="Personalized financial intelligence and health metrics."
+                title="Findash AI Copilot"
+                subtitle="Your intelligent conversational financial assistant."
                 icon={<Bot size={22} />}
+                action={
+                    <button className="header-new-chat-btn" onClick={handleNewChat}>
+                        <Plus size={15} /> New Chat
+                    </button>
+                }
             />
 
             {!isPremium && (
                 <div className="coach-premium-notice">
                     <Sparkles size={14} />
-                    <span>You're on the free plan. <button onClick={() => setIsUpgradeOpen(true)}>Upgrade to Premium</button> for full AI access.</span>
+                    <span>You're on the free plan. <button onClick={() => setIsUpgradeOpen(true)}>Upgrade to Premium</button> for unlimited AI Copilot access.</span>
                 </div>
             )}
 
@@ -134,62 +251,68 @@ const AICoach = () => {
                 </div>
             </div>
 
-            <div className="coach-chat-container">
-                {/* Messages */}
-                <div className="messages-area">
-                    {messages.map(msg => (
-                        <div key={msg.id} className={`message-row ${msg.sender}`}>
-                            <div className="message-avatar">
-                                {msg.sender === 'ai' ? <Bot size={16} /> : <UserIcon size={16} />}
-                            </div>
-                            <div className="message-bubble">
-                                <p>{msg.text}</p>
-                                <span className="message-time">
-                                    {msg.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
+            {/* Workspace: Sidebar + Chat Stream */}
+            <div className="ai-workspace">
+                <ChatSidebar
+                    conversations={conversations}
+                    activeConversationId={activeConvId}
+                    onSelectConversation={setActiveConvId}
+                    onNewChat={handleNewChat}
+                    onRenameConversation={handleRenameConversation}
+                    onDeleteConversation={handleDeleteConversation}
+                    isOpen={isSidebarOpen}
+                    onToggleOpen={() => setIsSidebarOpen(!isSidebarOpen)}
+                />
 
-                    {isTyping && (
-                        <div className="message-row ai">
-                            <div className="message-avatar"><Bot size={16} /></div>
-                            <div className="message-bubble typing">
-                                <span className="dot" /><span className="dot" /><span className="dot" />
+                <div className="ai-chat-main">
+                    <div className="messages-area">
+                        {messages.length === 0 && !isGenerating ? (
+                            <PromptSuggestions onSelectPrompt={p => handleSend(p)} />
+                        ) : (
+                            messages.map((msg, idx) => (
+                                <ChatMessageItem
+                                    key={msg.id}
+                                    message={msg}
+                                    isLast={idx === messages.length - 1}
+                                    onRegenerate={() => handleSend(messages[messages.length - 2]?.content || msg.content)}
+                                />
+                            ))
+                        )}
+
+                        {/* Streaming response display */}
+                        {isGenerating && streamingText && (
+                            <ChatMessageItem
+                                message={{
+                                    id: 'streaming-msg',
+                                    conversationId: activeConvId || '',
+                                    role: 'assistant',
+                                    content: streamingText,
+                                    timestamp: new Date().toISOString()
+                                }}
+                                isLast={true}
+                            />
+                        )}
+
+                        {/* Typing indicator before first chunk */}
+                        {isGenerating && !streamingText && (
+                            <div className="chat-message-row assistant animate-fade-in">
+                                <div className="message-avatar"><Bot size={16} /></div>
+                                <div className="message-bubble typing">
+                                    <span className="dot" /><span className="dot" /><span className="dot" />
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
 
-                {/* Prompt chips */}
-                <div className="prompt-chips">
-                    {PROMPT_CHIPS.map(chip => (
-                        <button key={chip} className="prompt-chip"
-                            onClick={() => handleSend(chip)}>
-                            {chip}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Input */}
-                <div className="coach-input-area">
-                    <textarea
-                        className="coach-textarea"
-                        placeholder="Ask about your finances..."
+                    {/* Input Area */}
+                    <ChatInputArea
                         value={inputValue}
-                        onChange={e => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        rows={1}
+                        onChange={setInputValue}
+                        onSend={() => handleSend()}
+                        onStop={handleStopGenerating}
+                        isGenerating={isGenerating}
                     />
-                    <Button
-                        icon={<Send size={16} />}
-                        onClick={() => handleSend()}
-                        disabled={!inputValue.trim() || isTyping}
-                        size="sm"
-                    >
-                        Send
-                    </Button>
                 </div>
             </div>
 

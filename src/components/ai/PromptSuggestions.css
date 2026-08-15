@@ -1,0 +1,83 @@
+.prompt-suggestions-container {
+    max-width: 720px;
+    margin: 2rem auto;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+.prompt-suggestions-header {
+    margin-bottom: 2rem;
+}
+
+.sparkles-icon {
+    color: #6366f1;
+    margin-bottom: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+.prompt-suggestions-header h3 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+    margin: 0 0 0.4rem 0;
+}
+
+.prompt-suggestions-header p {
+    font-size: 0.88rem;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0;
+}
+
+.prompt-suggestions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.prompt-card {
+    background: var(--bg-card, rgba(18, 18, 26, 0.6));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.1rem;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+}
+
+.prompt-card:hover {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+}
+
+.prompt-card-icon {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    padding: 0.5rem;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.prompt-card-content h4 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary, #f8fafc);
+    margin: 0 0 0.2rem 0;
+}
+
+.prompt-card-content p {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0;
+    line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+    .prompt-suggestions-grid {
+        grid-template-columns: 1fr;
+    }
+}
