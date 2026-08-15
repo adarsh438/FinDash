@@ -9,8 +9,9 @@ import Input from '../components/Input';
 import EmptyState from '../components/EmptyState';
 import { useAuth } from '../context/AuthContext';
 import { useExpenses } from '../context/ExpenseContext';
-import { expenseService, type ExpenseCategory } from '../services/expenseService';
+import { type ExpenseCategory } from '../services/expenseService';
 import { useToast } from '../context/ToastContext';
+import { getLocalDateString } from '../utils/dateUtils';
 import './Transactions.css';
 
 const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
@@ -26,14 +27,14 @@ const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
 const Transactions = () => {
     const { currentUser } = useAuth();
     const { showToast } = useToast();
-    const { expenses, loading, deleteExpense } = useExpenses();
+    const { expenses, loading, addExpense, deleteExpense } = useExpenses();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState<ExpenseCategory>('other');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(getLocalDateString());
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -41,13 +42,13 @@ const Transactions = () => {
         if (!currentUser) return;
         setIsSubmitting(true);
         try {
-            await expenseService.addExpense(currentUser.uid, {
+            await addExpense({
                 title, amount: parseFloat(amount), category, date
             });
             setIsModalOpen(false);
             showToast('Transaction added!', 'success');
             setTitle(''); setAmount(''); setCategory('other');
-            setDate(new Date().toISOString().split('T')[0]);
+            setDate(getLocalDateString());
         } catch (err: any) {
             showToast(err.message || 'Failed', 'error');
         } finally { setIsSubmitting(false); }

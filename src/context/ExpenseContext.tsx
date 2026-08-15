@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { expenseService, type Expense, type Budget } from '../services/expenseService';
 import { useAuth } from './AuthContext';
+import { isSameMonth } from '../utils/dateUtils';
 
 interface ExpenseContextType {
     expenses: Expense[];
@@ -12,6 +13,7 @@ interface ExpenseContextType {
     currentMonthSpend: number;
     balance: number;
     safeToSpend: number;
+    addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => Promise<string | undefined>;
     deleteExpense: (id: string) => Promise<void>;
     updateExpense: (id: string, data: Partial<Expense>) => Promise<void>;
     duplicateExpense: (expense: Expense) => Promise<string | undefined>;
@@ -62,15 +64,8 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         };
     }, [currentUser]);
 
-    // Derived stats
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const currentMonthExpenses = expenses.filter(e => {
-        const d = new Date(e.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
+    // Derived stats using timezone-safe local date parsing
+    const currentMonthExpenses = expenses.filter(e => isSameMonth(e.date));
 
     const currentMonthIncome = currentMonthExpenses
         .filter(e => e.type === 'income' || e.category === 'income')
@@ -85,6 +80,16 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Safe to Spend = Total Monthly Budget + Income - Current Month Spend
     const totalBudget = budget?.amount || 0;
     const safeToSpend = Math.max(0, (totalBudget + currentMonthIncome) - currentMonthSpend);
+
+    const addExpense = useCallback(async (expenseData: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
+        if (!currentUser) return;
+        setRefreshing(true);
+        try {
+            return await expenseService.addExpense(currentUser.uid, expenseData);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [currentUser]);
 
     const deleteExpense = useCallback(async (id: string) => {
         setRefreshing(true);
@@ -145,6 +150,7 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
             currentMonthSpend,
             balance,
             safeToSpend,
+            addExpense,
             deleteExpense,
             updateExpense,
             duplicateExpense,
@@ -155,3 +161,4 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         </ExpenseContext.Provider>
     );
 };
+

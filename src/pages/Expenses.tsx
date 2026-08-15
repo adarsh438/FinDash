@@ -34,6 +34,7 @@ import { useExpenses } from '../context/ExpenseContext';
 import { type Expense, type ExpenseCategory } from '../services/expenseService';
 import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
+import { parseLocalDate, getLocalDateString } from '../utils/dateUtils';
 import './Expenses.css';
 
 const CATEGORIES: { value: ExpenseCategory; label: string; icon: React.ElementType; color: string }[] = [
@@ -136,7 +137,7 @@ const Expenses = () => {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `findash-expenses-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute('download', `findash-expenses-${getLocalDateString()}.csv`);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -174,8 +175,8 @@ const Expenses = () => {
                 return matchSearch && matchCat && matchPayment && matchStart && matchEnd && matchMin && matchMax;
             })
             .sort((a, b) => {
-                if (sortBy === 'newest') return new Date(b.date).getTime() - new Date(a.date).getTime();
-                if (sortBy === 'oldest') return new Date(a.date).getTime() - new Date(b.date).getTime();
+                if (sortBy === 'newest') return parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime();
+                if (sortBy === 'oldest') return parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
                 if (sortBy === 'highest') return b.amount - a.amount;
                 if (sortBy === 'lowest') return a.amount - b.amount;
                 return 0;

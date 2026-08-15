@@ -4,6 +4,7 @@ import { Wallet, TrendingUp, TrendingDown, ArrowRight, Plus, Target, Clock, Zap 
 import { useAuth } from '../context/AuthContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { useCurrency } from '../context/CurrencyContext';
+import { parseLocalDate } from '../utils/dateUtils';
 import StatCard from '../components/StatCard';
 import TransactionRow from '../components/TransactionRow';
 import SafeToSpendWidget from '../components/SafeToSpendWidget';
@@ -30,13 +31,14 @@ const Dashboard = () => {
         return Math.max(lastDay.getDate() - now.getDate(), 1);
     })();
 
-    // Last month comparison for trend
+    // Last month comparison for trend using timezone-safe parseLocalDate
     const lastMonthExpenses = expenses.filter(e => {
-        const d = new Date(e.date);
+        if (e.category === 'income' || e.type === 'income') return false;
+        const d = parseLocalDate(e.date);
         const now = new Date();
-        return d.getMonth() === (now.getMonth() - 1 + 12) % 12 &&
-               d.getFullYear() === (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()) &&
-               e.category !== 'income';
+        const prevMonth = (now.getMonth() - 1 + 12) % 12;
+        const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+        return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
     });
     const lastMonthSpend = lastMonthExpenses.reduce((s, e) => s + e.amount, 0);
     const spendTrend = lastMonthSpend > 0

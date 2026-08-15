@@ -2,6 +2,7 @@ import React from 'react';
 import { Coffee, Wallet, Home, BookOpen, Tv, Trash2, Car, ShoppingBag, Heart, Briefcase, Plane, Package } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import type { ExpenseCategory } from '../services/expenseService';
+import { formatRelativeDate } from '../utils/dateUtils';
 import './TransactionRow.css';
 
 interface TransactionRowProps {
@@ -30,16 +31,6 @@ const CATEGORY_MAP: Record<ExpenseCategory, { icon: React.FC<any>; color: string
     rent_hostel:     { icon: Home,        color: '#6366f1', bg: 'rgba(99,102,241,0.12)' },
     study_materials: { icon: BookOpen,    color: '#f472b6', bg: 'rgba(244,114,182,0.12)'},
     subscriptions:   { icon: Tv,          color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
-};
-
-const formatRelativeDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
 const TransactionRow: React.FC<TransactionRowProps> = ({

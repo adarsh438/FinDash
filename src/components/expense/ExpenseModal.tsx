@@ -5,7 +5,7 @@ import { X, ChevronDown, Repeat } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useToast } from '../../context/ToastContext';
-import { expenseService, type ExpenseCategory, type IncomeCategory } from '../../services/expenseService';
+import { type ExpenseCategory, type IncomeCategory } from '../../services/expenseService';
 import AmountInput from './AmountInput';
 import QuickAmountButtons from './QuickAmountButtons';
 import RecentExpenseChips from './RecentExpenseChips';
@@ -17,6 +17,7 @@ import ReceiptUploader from './ReceiptUploader';
 import SmartSuggestions from './SmartSuggestions';
 import ExpenseSuccessOverlay from './ExpenseSuccessOverlay';
 import type { Expense } from '../../services/expenseService';
+import { getLocalDateString } from '../../utils/dateUtils';
 import './ExpenseModal.css';
 
 interface ExpenseModalProps {
@@ -70,7 +71,7 @@ const mobileModalVariants = {
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExpense }) => {
     const { currentUser } = useAuth();
-    const { expenses, budget, currentMonthSpend, updateExpense } = useExpenses();
+    const { expenses, budget, currentMonthSpend, addExpense, updateExpense } = useExpenses();
     const { showToast } = useToast();
 
     // Type toggle
@@ -81,7 +82,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExp
     const [title, setTitle] = useState('');
     const [category, setCategory] = useState<ExpenseCategory>('food');
     const [incomeCategory, setIncomeCategory] = useState<IncomeCategory>('salary');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(getLocalDateString());
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
     const [notes, setNotes] = useState('');
     const [tags, setTags] = useState<string[]>([]);
@@ -106,7 +107,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExp
             setTitle(editingExpense.title || '');
             setCategory(editingExpense.category || 'food');
             setIncomeCategory(editingExpense.incomeCategory || 'salary');
-            setDate(editingExpense.date || new Date().toISOString().split('T')[0]);
+            setDate(editingExpense.date || getLocalDateString());
             setPaymentMethod(editingExpense.paymentMethod || 'upi');
             setNotes(editingExpense.notes || '');
             setTags(editingExpense.tags || []);
@@ -154,7 +155,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExp
         setTitle('');
         setCategory('food');
         setIncomeCategory('salary');
-        setDate(new Date().toISOString().split('T')[0]);
+        setDate(getLocalDateString());
         setPaymentMethod('upi');
         setNotes('');
         setTags([]);
@@ -210,7 +211,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, editingExp
                 showToast(txType === 'income' ? 'Income updated!' : 'Expense updated!', 'success');
                 handleClose();
             } else {
-                await expenseService.addExpense(currentUser.uid, payload);
+                await addExpense(payload);
                 setShowSuccess(true);
                 setTimeout(() => {
                     handleClose();

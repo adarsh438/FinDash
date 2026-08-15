@@ -3,7 +3,6 @@ import {
     addDoc,
     query,
     where,
-    orderBy,
     onSnapshot,
     deleteDoc,
     doc,
@@ -15,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEMO_EXPENSES } from './demoData';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export type ExpenseCategory =
     | 'food' | 'transport' | 'shopping' | 'entertainment' | 'health'
@@ -161,7 +161,7 @@ export const expenseService = {
             return await expenseService.addExpense(userId, {
                 ...rest,
                 title: `${expense.title} (Copy)`,
-                date: new Date().toISOString().split('T')[0]
+                date: getLocalDateString()
             });
         } catch (error) {
             console.error("Error duplicating transaction: ", error);
@@ -200,9 +200,17 @@ export const expenseService = {
                         if (dateA !== dateB) {
                             return dateB.localeCompare(dateA);
                         }
-                        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-                        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-                        return timeB - timeA;
+                        const getTimestamp = (exp: Expense) => {
+                            if (!exp.createdAt) return Date.now();
+                            if (typeof (exp.createdAt as any).toMillis === 'function') {
+                                return (exp.createdAt as any).toMillis();
+                            }
+                            if (typeof (exp.createdAt as any).seconds === 'number') {
+                                return (exp.createdAt as any).seconds * 1000;
+                            }
+                            return Date.now();
+                        };
+                        return getTimestamp(b) - getTimestamp(a);
                     });
                 callback(expenses);
             },
