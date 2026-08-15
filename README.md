@@ -62,8 +62,8 @@ Simulates a real-world SaaS business model:
 ### Installation
 1.  **Clone the repo**
     ```bash
-    git clone https://github.com/adarsh438/Finance_manager.git
-    cd Finance_manager
+    git clone https://github.com/adarsh438/FinDash.git
+    cd FinDash
     ```
 
 2.  **Install dependencies**
