@@ -3,7 +3,6 @@ import {
     addDoc,
     query,
     where,
-    orderBy,
     onSnapshot,
     deleteDoc,
     doc,
@@ -54,18 +53,25 @@ export const billService = {
         }
     },
 
-    // Subscribe to custom bills
+    // Subscribe to custom bills (removes composite index requirement)
     subscribeToBills: (userId: string, callback: (bills: CustomBill[]) => void) => {
         const q = query(
             collection(db, BILLS_COLLECTION),
-            where("userId", "==", userId),
-            orderBy("dueDate", "asc")
+            where("userId", "==", userId)
         );
 
-        return onSnapshot(q, (snapshot) => {
-            const bills = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CustomBill));
-            callback(bills);
-        });
+        return onSnapshot(
+            q,
+            (snapshot) => {
+                const bills = snapshot.docs
+                    .map(d => ({ id: d.id, ...d.data() } as CustomBill))
+                    .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+                callback(bills);
+            },
+            (error) => {
+                console.error("Error subscribing to bills:", error);
+            }
+        );
     },
 
     // Mark bill as paid & record transaction automatically
