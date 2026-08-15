@@ -177,7 +177,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Send Email Verification
         try {
             if (userCred.user) {
-                await sendEmailVerification(userCred.user);
+                await sendEmailVerification(userCred.user, {
+                    url: window.location.origin,
+                    handleCodeInApp: false
+                });
             }
         } catch (verr) {
             console.warn('[Auth] Could not send initial verification email:', verr);
@@ -198,8 +201,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const resendVerificationEmail = async () => {
-        if (auth.currentUser) {
-            await sendEmailVerification(auth.currentUser);
+        const targetUser = auth.currentUser || currentUser;
+        if (targetUser && 'email' in targetUser) {
+            await sendEmailVerification(targetUser as User, {
+                url: window.location.origin,
+                handleCodeInApp: false
+            });
         } else {
             throw new Error("No user is currently signed in.");
         }
