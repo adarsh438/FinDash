@@ -132,7 +132,7 @@ const Dashboard = () => {
                         <Clock size={17} />
                         <h2>Recent Activity</h2>
                     </div>
-                    <button className="view-all-btn" onClick={() => navigate('/transactions')}>
+                    <button className="view-all-btn" onClick={() => navigate('/expenses')}>
                         View All <ArrowRight size={14} />
                     </button>
                 </div>

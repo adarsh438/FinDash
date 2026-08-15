@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Wallet, PieChart, Settings, CreditCard,
     Bot, Calendar, Target, Crown, LogOut, ChevronLeft, ChevronRight,
-    Users, ArrowLeftRight
+    Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
@@ -17,7 +17,6 @@ interface SidebarProps {
 const NAV_ITEMS = [
     { to: '/',            icon: LayoutDashboard, label: 'Dashboard'  },
     { to: '/expenses',    icon: CreditCard,      label: 'Expenses'   },
-    { to: '/transactions',icon: ArrowLeftRight,  label: 'Transactions'},
     { to: '/groups',      icon: Users,           label: 'Groups'     },
     { to: '/coach',       icon: Bot,             label: 'AI Coach'   },
     { to: '/bills',       icon: Calendar,        label: 'Bills'      },

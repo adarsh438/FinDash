@@ -12,7 +12,6 @@ import OnboardingTour from './components/OnboardingTour';
 // Lazy load pages for performance
 const Dashboard      = lazy(() => import('./pages/Dashboard'));
 const Expenses       = lazy(() => import('./pages/Expenses'));
-const Transactions   = lazy(() => import('./pages/Transactions'));
 const AICoach        = lazy(() => import('./pages/AICoach'));
 const Bills          = lazy(() => import('./pages/Bills'));
 const Goals          = lazy(() => import('./pages/Goals'));
@@ -72,7 +71,7 @@ function App() {
             }>
               <Route index element={<Dashboard />} />
               <Route path="expenses"     element={<Expenses />} />
-              <Route path="transactions" element={<Transactions />} />
+              <Route path="transactions" element={<Navigate to="/expenses" replace />} />
               <Route path="groups"       element={<Groups />} />
               <Route path="coach"        element={<AICoach />} />
               <Route path="bills"        element={<Bills />} />
