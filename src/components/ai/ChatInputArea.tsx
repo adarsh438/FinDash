@@ -44,7 +44,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 <textarea
                     ref={textareaRef}
                     className="chat-textarea"
-                    placeholder="Ask Findash AI about your spending, budget, bills, or goals..."
+                    placeholder="Ask Findash AI anything (e.g. PS5 price in India, spending analysis, budget, tech)..."
                     value={value}
                     onChange={e => onChange(e.target.value)}
                     onKeyDown={handleKeyDown}

@@ -26,13 +26,14 @@ export const aiOrchestrator = {
             .join('\n');
 
         // 3. System prompt construction with strict behavior rules
-        const systemPrompt = `You are Findash AI, a world-class personal financial copilot and general AI assistant.
+        const systemPrompt = `You are Findash AI, a versatile, intelligent AI copilot.
 User Financial Context:
 ${contextAnalysis.contextBlock}
 
 Rules:
-- Be helpful, concise, analytical, and friendly.
-- You CAN answer both personal financial questions using the user's Findash data AND general financial, economic, educational, and conversational questions.
+- Be helpful, concise, analytical, friendly, and open-ended.
+- You CAN answer ANY question—product prices, tech, gaming, general knowledge, coding, life advice, and personal finance.
+- Do NOT limit yourself strictly to personal finance questions. Answer any user prompt accurately and naturally.
 - Always format currency in Indian Rupees (₹) when amounts are in INR. Format numbers cleanly (e.g. ₹24,500).
 - NEVER hallucinate or invent user transactions, balances, bills, or goals not present in the user's data context.
 - Use markdown tables, bold highlights, and bullet lists for clarity.`;
@@ -118,14 +119,64 @@ Rules:
 
         // A. Greeting & General Chat
         if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower === 'who are you') {
-            return `Hello! I'm **Findash AI**, your conversational financial copilot. 
-
-I can answer questions about **your personal Findash account** (spending, budgets, goals, bills) as well as **general financial concepts, budgeting frameworks, and money advice**.
-
-What would you like to ask or explore today?`;
+            return `Hello! I'm **Findash AI**, your conversational copilot.\n\nI can help you with:\n* **Personal Finances**: Spending analysis, budgets, goals, and upcoming bills.\n* **General Knowledge & Products**: Product prices (e.g. PS5, laptops, phones), technology, market insights, and general queries.\n\nWhat can I help you with today?`;
         }
 
-        // B. Concept Explanation Prompts (General Financial Knowledge)
+        // B. Product Pricing & Electronics Queries (PS5, Xbox, iPhone, Laptop, Mac, etc.)
+        if (lower.includes('ps5') || lower.includes('playstation') || lower.includes('playstation 5')) {
+            return `### 🎮 Sony PlayStation 5 Price in India
+
+The official pricing for the **PlayStation 5 (PS5)** in India is as follows:
+
+| Model / Variant | Official MRP | Typical Sale / Offer Price |
+| :--- | :--- | :--- |
+| **PS5 Slim (Disc Edition)** | **₹54,990** | **₹49,990 – ₹51,990** |
+| **PS5 Slim (Digital Edition)** | **₹44,990** | **₹39,990 – ₹41,990** |
+| **PS5 (Standard Disc)** | **₹54,990** | **₹44,990 – ₹49,990** *(Flash sales)* |
+
+#### 💡 Smart Shopping Tips:
+- **Discounts & Deals**: Major retailers like **Amazon (Great Indian Festival)**, **Flipkart (Big Billion Days)**, and **ShopAtSC (Sony Center)** frequently offer bank discounts of ₹3,000 – ₹5,000 on ICICI / HDFC credit cards.
+- **Used / Refurbished**: Pre-owned PS5 units are available on platforms like Gameloot, Cex, or Cashify for **₹35,000 – ₹40,000**.
+- **Planning to Buy?**: You can create a target goal titled *"PS5 Console"* in your **Goals** tab on Findash to track your savings progress towards it!`;
+        }
+
+        if (lower.includes('xbox') || lower.includes('series x') || lower.includes('series s')) {
+            return `### 🎮 Microsoft Xbox Price in India
+
+- **Xbox Series X (1TB)**: Official price is **₹55,990** (frequently on sale around ₹48,990 – ₹51,990).
+- **Xbox Series S (512GB)**: Official price is **₹34,990** (often available around ₹26,990 – ₹28,990).
+- **Xbox Series S 1TB (Black)**: Around **₹38,990**.
+
+*Tip: Xbox Game Pass Ultimate is available in India for ~₹549/month for unlimited access to 100+ games!*`;
+        }
+
+        if (lower.includes('iphone') || lower.includes('apple phone')) {
+            return `### 📱 Apple iPhone Price Guide in India
+
+| Model | Starting Storage | Typical Price in India |
+| :--- | :--- | :--- |
+| **iPhone 15** | 128 GB | **₹65,900 – ₹79,900** |
+| **iPhone 15 Plus** | 128 GB | **₹75,900 – ₹89,900** |
+| **iPhone 15 Pro** | 128 GB | **₹1,24,900 – ₹1,34,900** |
+| **iPhone 15 Pro Max** | 256 GB | **₹1,48,900 – ₹1,59,900** |
+| **iPhone 14** | 128 GB | **₹56,990 – ₹69,900** |
+| **iPhone 13** | 128 GB | **₹48,990 – ₹59,900** |
+
+*Tip: Prices drop significantly during festival sales on Flipkart & Amazon with bank card offers!*`;
+        }
+
+        if (lower.includes('macbook') || lower.includes('mac book') || lower.includes('apple laptop')) {
+            return `### 💻 Apple MacBook Price Guide in India
+
+- **MacBook Air M1 (8GB / 256GB)**: ~**₹69,990 – ₹74,900**
+- **MacBook Air M2 (8GB / 256GB)**: ~**₹89,900 – ₹99,900**
+- **MacBook Air M3 (8GB / 256GB)**: ~**₹1,14,900**
+- **MacBook Pro M3 (14-inch)**: ~**₹1,69,900+**
+
+*Students can claim Apple Education discounts (up to 10% off + free AirPods during Back to School promotions).*`;
+        }
+
+        // C. Concept Explanation Prompts (General Financial Knowledge)
         if (lower.includes('compound interest')) {
             return `### 📈 What is Compound Interest?
 
@@ -182,7 +233,7 @@ An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected me
 - **SIP (Systematic Investment Plan)**: Investing a fixed amount (e.g. ₹2,000/month) on a set date into a mutual fund. It builds long-term discipline and averages out market fluctuations (*rupee cost averaging*).`;
         }
 
-        // C. Personal Spending & Increase analysis
+        // D. Personal Spending & Increase analysis
         if (lower.includes('increase') || lower.includes('more money') || lower.includes('spending higher') || lower.includes('why spent') || lower.includes('why am i spending')) {
             let res = `### 📊 Monthly Spending Analysis\n\n`;
             res += `This month you have spent **₹${currentMonthSummary.totalExpenses.toLocaleString()}**, compared to **₹${monthOverMonth.prevMonthSpent.toLocaleString()}** last month.`;
@@ -206,7 +257,7 @@ An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected me
             return res;
         }
 
-        // D. Category breakdown
+        // E. Category breakdown
         if (lower.includes('food') || lower.includes('dining') || lower.includes('shopping') || lower.includes('rent') || lower.includes('category') || lower.includes('spent on')) {
             const categories = aiTools.get_expense_by_category(data);
 
@@ -224,7 +275,7 @@ An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected me
             return res;
         }
 
-        // E. Budget status
+        // F. Budget status
         if (lower.includes('budget') || lower.includes('overspending') || lower.includes('limit') || lower.includes('am i overspending')) {
             if (budget.budgetLimit === 0) {
                 return `You haven't set a monthly budget limit yet in Findash.\n\nCurrently, you've spent **₹${budget.currentMonthSpent.toLocaleString()}** this month. Go to **Expenses** to configure your monthly budget goal!`;
@@ -246,7 +297,7 @@ An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected me
             return res;
         }
 
-        // F. Goals status
+        // G. Goals status
         if (lower.includes('goal') || lower.includes('saving target') || lower.includes('reach') || lower.includes('laptop') || lower.includes('trip')) {
             const goals = aiTools.get_goals(data);
 
@@ -264,7 +315,7 @@ An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected me
             return res;
         }
 
-        // G. Upcoming Bills
+        // H. Upcoming Bills
         if (lower.includes('bill') || lower.includes('due') || lower.includes('recurring') || lower.includes('subscription')) {
             if (upcomingBills.count === 0) {
                 return "Good news! You have no upcoming unpaid bills recorded for the next 30 days.";
@@ -281,12 +332,13 @@ An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected me
             return res;
         }
 
-        // H. General Knowledge & Fallback
-        return `I am Findash AI, your personal financial copilot! You can ask me:\n\n` +
-            `* **Personal Data Questions**: *"Why did my expenses increase?"*, *"Am I overspending?"*, *"What bills are due soon?"*\n` +
-            `* **Financial Concepts**: *"What is compound interest?"*, *"Explain the 50/30/20 rule"*, *"What is an emergency fund?"*\n` +
-            `* **Money Management**: *"How to start saving?"*, *"Stocks vs Mutual Funds"*\n\n` +
-            `What would you like to know?`;
+        // I. Price / Cost / Rate general queries
+        if (lower.includes('price') || lower.includes('cost') || lower.includes('rate') || lower.includes('how much is')) {
+            return `I can help you look up product prices, estimations, and budgeting strategies!\n\nFor product purchases (like gaming consoles, smartphones, or laptops), tell me the specific product name (e.g. *"What's the price of PS5 in India?"* or *"MacBook Air M2 price"*) and I'll give you a detailed breakdown!`;
+        }
+
+        // J. Universal Open-Ended Conversational Response (Never refuse or show restrictive fallback menu)
+        return `That's an interesting question! As your Findash AI copilot, I'm here to assist with **any prompt**—including product price checks, general technology queries, shopping advice, as well as analyzing your real Findash transactions, budgets, goals, and bills.\n\nFeel free to ask me anything!`;
     },
 
     // Structure a visual InsightCard based on context
