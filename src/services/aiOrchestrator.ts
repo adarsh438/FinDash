@@ -26,15 +26,15 @@ export const aiOrchestrator = {
             .join('\n');
 
         // 3. System prompt construction with strict behavior rules
-        const systemPrompt = `You are Findash AI, a world-class personal financial copilot.
+        const systemPrompt = `You are Findash AI, a world-class personal financial copilot and general AI assistant.
 User Financial Context:
 ${contextAnalysis.contextBlock}
 
 Rules:
-- Be helpful, concise, analytical, and encouraging.
+- Be helpful, concise, analytical, and friendly.
+- You CAN answer both personal financial questions using the user's Findash data AND general financial, economic, educational, and conversational questions.
 - Always format currency in Indian Rupees (₹) when amounts are in INR. Format numbers cleanly (e.g. ₹24,500).
-- NEVER hallucinate or invent transactions, balances, bills, or goals not present in the user's data context.
-- If data is unavailable, clearly state: "I don't have enough information in your Findash data to determine that."
+- NEVER hallucinate or invent user transactions, balances, bills, or goals not present in the user's data context.
 - Use markdown tables, bold highlights, and bullet lists for clarity.`;
 
         const geminiApiKey = (import.meta.env as any).VITE_GEMINI_API_KEY || (import.meta.env as any).GEMINI_API_KEY || '';
@@ -110,18 +110,79 @@ Rules:
         };
     },
 
-    // Deterministic, zero-hallucination local financial reasoning engine
+    // Deterministic, zero-hallucination local financial & general intelligence engine
     generateLocalResponse: (userMessage: string, data: UserFinancialData): string => {
         const lower = userMessage.toLowerCase().trim();
         const snapshot = aiTools.get_financial_snapshot(data);
-        const { currentMonthSummary, topCategories, monthOverMonth, budget, goalsOverview, upcomingBills } = snapshot;
+        const { currentMonthSummary, topCategories, monthOverMonth, budget, upcomingBills } = snapshot;
 
-        // A. Greeting
-        if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-            return `Hello! I'm **Findash AI**, your personal financial copilot. I'm connected to your real transactions, budgets, goals, and bills.\n\nHere's what I can do for you:\n* **Analyze spending trends & overspending**\n* **Check budget status & savings rate**\n* **Track financial goals & deadline progress**\n* **Remind you of upcoming bills**\n\nWhat would you like to explore today?`;
+        // A. Greeting & General Chat
+        if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower === 'who are you') {
+            return `Hello! I'm **Findash AI**, your conversational financial copilot. 
+
+I can answer questions about **your personal Findash account** (spending, budgets, goals, bills) as well as **general financial concepts, budgeting frameworks, and money advice**.
+
+What would you like to ask or explore today?`;
         }
 
-        // B. Spending & Increase analysis
+        // B. Concept Explanation Prompts (General Financial Knowledge)
+        if (lower.includes('compound interest')) {
+            return `### 📈 What is Compound Interest?
+
+Compound interest is the concept of earning interest on both your initial principal amount **and** the accumulated interest from previous periods. 
+
+#### 💡 The Formula:
+$$A = P \\left(1 + \\frac{r}{n}\\right)^{nt}$$
+
+- **P**: Initial principal amount
+- **r**: Annual interest rate (decimal)
+- **n**: Number of times interest compounds per year
+- **t**: Number of years
+
+#### 🌟 Why it Matters:
+Start early! Small amounts invested regularly (e.g. via Monthly SIPs) grow exponentially over 10–20 years due to compounding.`;
+        }
+
+        if (lower.includes('50/30/20') || lower.includes('50 30 20')) {
+            return `### 📊 The 50/30/20 Budgeting Rule
+
+The **50/30/20 Rule** is an easy-to-follow framework for managing your income:
+
+1. **50% Needs**: Essential expenses like rent, utilities, groceries, and minimum bill payments.
+2. **30% Wants**: Discretionary spending like dining out, shopping, hobbies, and entertainment.
+3. **20% Savings & Debt**: Direct allocations to emergency funds, investments (SIPs/Mutual Funds), or extra debt payments.
+
+*Tip: You can use Findash to categorize your monthly expenses into Needs vs. Wants to track your adherence!*`;
+        }
+
+        if (lower.includes('inflation')) {
+            return `### 💸 What is Inflation?
+
+Inflation is the rate at which the general level of prices for goods and services rises over time, reducing the purchasing power of your money.
+
+- **Example**: If annual inflation is 6%, an item that costs ₹100 today will cost ₹106 next year.
+- **Key Takeaway**: Keeping all your money in a basic savings account (earning ~3%) means your real purchasing power decreases over time. Investing in assets that beat inflation (like equities or mutual funds) protects your wealth.`;
+        }
+
+        if (lower.includes('emergency fund')) {
+            return `### 🛡️ What is an Emergency Fund?
+
+An **Emergency Fund** is a stash of liquid cash set aside to cover unexpected medical bills, job transitions, or urgent repairs.
+
+- **Recommended Size**: 3 to 6 months of essential living expenses.
+- **Where to Keep It**: High-yield savings accounts or liquid mutual funds for instant accessibility.
+- **In Findash**: Create a goal titled *"Emergency Fund"* under your **Goals** tab to track your progress!`;
+        }
+
+        if (lower.includes('sip') || lower.includes('mutual fund') || lower.includes('stock')) {
+            return `### 💹 Stocks vs. Mutual Funds & SIPs
+
+- **Stocks**: Direct ownership in individual companies. High potential return, but requires research and has higher volatility.
+- **Mutual Funds**: Pooled investments managed by professionals across a diversified portfolio of companies.
+- **SIP (Systematic Investment Plan)**: Investing a fixed amount (e.g. ₹2,000/month) on a set date into a mutual fund. It builds long-term discipline and averages out market fluctuations (*rupee cost averaging*).`;
+        }
+
+        // C. Personal Spending & Increase analysis
         if (lower.includes('increase') || lower.includes('more money') || lower.includes('spending higher') || lower.includes('why spent') || lower.includes('why am i spending')) {
             let res = `### 📊 Monthly Spending Analysis\n\n`;
             res += `This month you have spent **₹${currentMonthSummary.totalExpenses.toLocaleString()}**, compared to **₹${monthOverMonth.prevMonthSpent.toLocaleString()}** last month.`;
@@ -145,7 +206,7 @@ Rules:
             return res;
         }
 
-        // C. Category breakdown
+        // D. Category breakdown
         if (lower.includes('food') || lower.includes('dining') || lower.includes('shopping') || lower.includes('rent') || lower.includes('category') || lower.includes('spent on')) {
             const categories = aiTools.get_expense_by_category(data);
 
@@ -163,7 +224,7 @@ Rules:
             return res;
         }
 
-        // D. Budget status
+        // E. Budget status
         if (lower.includes('budget') || lower.includes('overspending') || lower.includes('limit') || lower.includes('am i overspending')) {
             if (budget.budgetLimit === 0) {
                 return `You haven't set a monthly budget limit yet in Findash.\n\nCurrently, you've spent **₹${budget.currentMonthSpent.toLocaleString()}** this month. Go to **Expenses** to configure your monthly budget goal!`;
@@ -185,7 +246,7 @@ Rules:
             return res;
         }
 
-        // E. Goals status
+        // F. Goals status
         if (lower.includes('goal') || lower.includes('saving target') || lower.includes('reach') || lower.includes('laptop') || lower.includes('trip')) {
             const goals = aiTools.get_goals(data);
 
@@ -203,7 +264,7 @@ Rules:
             return res;
         }
 
-        // F. Upcoming Bills
+        // G. Upcoming Bills
         if (lower.includes('bill') || lower.includes('due') || lower.includes('recurring') || lower.includes('subscription')) {
             if (upcomingBills.count === 0) {
                 return "Good news! You have no upcoming unpaid bills recorded for the next 30 days.";
@@ -220,15 +281,12 @@ Rules:
             return res;
         }
 
-        // G. General Financial Health / Snapshot
-        return `### 💡 Findash Financial Health Snapshot\n\n` +
-            `* **This Month's Spending**: ₹${currentMonthSummary.totalExpenses.toLocaleString()}\n` +
-            `* **This Month's Income**: ₹${currentMonthSummary.totalIncome.toLocaleString()}\n` +
-            `* **Month-over-Month Trend**: ${monthOverMonth.percentageChange}\n` +
-            `* **Budget Used**: ${budget.percentageUsed} (${budget.daysRemaining} days left)\n` +
-            `* **Active Goals**: ${goalsOverview.total} (${goalsOverview.completed} completed)\n` +
-            `* **Upcoming Bills**: ${upcomingBills.count} bills (₹${upcomingBills.totalDue.toLocaleString()})\n\n` +
-            `Ask me anything specific like: *"Why did my expenses increase?"*, *"Am I overspending?"*, or *"What bills are due soon?"*`;
+        // H. General Knowledge & Fallback
+        return `I am Findash AI, your personal financial copilot! You can ask me:\n\n` +
+            `* **Personal Data Questions**: *"Why did my expenses increase?"*, *"Am I overspending?"*, *"What bills are due soon?"*\n` +
+            `* **Financial Concepts**: *"What is compound interest?"*, *"Explain the 50/30/20 rule"*, *"What is an emergency fund?"*\n` +
+            `* **Money Management**: *"How to start saving?"*, *"Stocks vs Mutual Funds"*\n\n` +
+            `What would you like to know?`;
     },
 
     // Structure a visual InsightCard based on context
