@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useExpenses } from '../context/ExpenseContext';
@@ -21,6 +21,25 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => {
     const [value, setValue] = useState(budget?.amount?.toString() || '');
     const [saving, setSaving] = useState(false);
 
+    // Sync input value when modal opens or budget changes externally
+    useEffect(() => {
+        if (isOpen) {
+            setValue(budget?.amount?.toString() || '');
+        }
+    }, [isOpen, budget]);
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const handleSave = async () => {
@@ -34,8 +53,10 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => {
             await setBudget(amount);
             showToast(`Budget set to ${formatCurrency(amount)}`, 'success');
             onClose();
-        } catch {
-            showToast('Failed to update budget', 'error');
+        } catch (err: any) {
+            const message = err?.message || 'Failed to update budget';
+            console.error('[BudgetModal] Error saving budget:', err);
+            showToast(message, 'error');
         } finally {
             setSaving(false);
         }

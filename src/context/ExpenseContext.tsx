@@ -124,6 +124,11 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setRefreshing(true);
         try {
             await expenseService.setBudget(currentUser.uid, amount, 'monthly');
+            // For demo users, manually refresh budget state since there's no Firestore onSnapshot
+            if (currentUser.uid === 'demo-user-123') {
+                const updatedBudget = await expenseService.getBudget(currentUser.uid);
+                setBudgetState(updatedBudget);
+            }
         } finally {
             setRefreshing(false);
         }

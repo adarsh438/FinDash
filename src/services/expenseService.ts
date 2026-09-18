@@ -135,7 +135,7 @@ export const expenseService = {
     // Update an existing expense / income
     updateExpense: async (id: string, data: Partial<Omit<Expense, 'id' | 'userId' | 'createdAt'>>) => {
         try {
-            if (id.startsWith('demo_') || id.startsWith('d')) {
+            if (id.startsWith('demo_')) {
                 const current = getDemoExpenses();
                 const updated = current.map(e => e.id === id ? { ...e, ...data } : e);
                 saveDemoExpenses(updated);
@@ -223,7 +223,7 @@ export const expenseService = {
     // Delete an expense
     deleteExpense: async (expenseId: string) => {
         try {
-            if (expenseId.startsWith('demo_') || expenseId.startsWith('d')) {
+            if (expenseId.startsWith('demo_')) {
                 const current = getDemoExpenses();
                 const updated = current.filter(e => e.id !== expenseId);
                 saveDemoExpenses(updated);
@@ -242,6 +242,15 @@ export const expenseService = {
     // Set or Update Total Budget
     setBudget: async (userId: string, amount: number, period: 'monthly' | 'semester' = 'monthly') => {
         try {
+            if (userId === 'demo-user-123') {
+                try {
+                    localStorage.setItem('findash_demo_budget', JSON.stringify({ amount, period }));
+                } catch (e) {
+                    console.error('Failed to save demo budget to storage', e);
+                }
+                return;
+            }
+
             const q = query(collection(db, BUDGETS_COLLECTION), where("userId", "==", userId), limit(1));
             const querySnapshot = await getDocs(q);
 
@@ -270,6 +279,17 @@ export const expenseService = {
     // Set Category Budgets
     setCategoryBudgets: async (userId: string, categoryBudgets: Record<string, number>) => {
         try {
+            if (userId === 'demo-user-123') {
+                try {
+                    const saved = localStorage.getItem('findash_demo_budget');
+                    const current = saved ? JSON.parse(saved) : {};
+                    localStorage.setItem('findash_demo_budget', JSON.stringify({ ...current, categoryBudgets }));
+                } catch (e) {
+                    console.error('Failed to save demo category budgets to storage', e);
+                }
+                return;
+            }
+
             const q = query(collection(db, BUDGETS_COLLECTION), where("userId", "==", userId), limit(1));
             const querySnapshot = await getDocs(q);
 
@@ -289,6 +309,26 @@ export const expenseService = {
     // Get Budget
     getBudget: async (userId: string): Promise<Budget | null> => {
         try {
+            if (userId === 'demo-user-123') {
+                try {
+                    const saved = localStorage.getItem('findash_demo_budget');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        return {
+                            id: 'demo_budget',
+                            userId: 'demo-user-123',
+                            amount: parsed.amount || 0,
+                            period: parsed.period || 'monthly',
+                            categoryBudgets: parsed.categoryBudgets,
+                            updatedAt: Timestamp.now()
+                        };
+                    }
+                } catch (e) {
+                    console.error('Failed to load demo budget from storage', e);
+                }
+                return null;
+            }
+
             const q = query(collection(db, BUDGETS_COLLECTION), where("userId", "==", userId), limit(1));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
@@ -302,6 +342,29 @@ export const expenseService = {
     },
 
     subscribeToBudget: (userId: string, callback: (budget: Budget | null) => void) => {
+        if (userId === 'demo-user-123') {
+            try {
+                const saved = localStorage.getItem('findash_demo_budget');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    callback({
+                        id: 'demo_budget',
+                        userId: 'demo-user-123',
+                        amount: parsed.amount || 0,
+                        period: parsed.period || 'monthly',
+                        categoryBudgets: parsed.categoryBudgets,
+                        updatedAt: Timestamp.now()
+                    });
+                } else {
+                    callback(null);
+                }
+            } catch (e) {
+                console.error('Failed to load demo budget from storage', e);
+                callback(null);
+            }
+            return () => {};
+        }
+
         const q = query(collection(db, BUDGETS_COLLECTION), where("userId", "==", userId), limit(1));
         return onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {

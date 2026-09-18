@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 
-type Currency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY';
+type Currency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'AUD' | 'CAD';
 
 interface CurrencyContextType {
     currency: Currency;
@@ -8,13 +8,24 @@ interface CurrencyContextType {
     formatCurrency: (amount: number) => string;
 }
 
+const CURRENCY_LOCALES: Record<Currency, string> = {
+    USD: 'en-US',
+    EUR: 'de-DE',
+    GBP: 'en-GB',
+    INR: 'en-IN',
+    JPY: 'ja-JP',
+    AUD: 'en-AU',
+    CAD: 'en-CA',
+};
+
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [currency, setCurrency] = useState<Currency>('INR');
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
+        const locale = CURRENCY_LOCALES[currency] || 'en-IN';
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: currency,
         }).format(amount);

@@ -13,11 +13,27 @@ import './Analytics.css';
 
 const CATEGORY_COLORS: Record<string, string> = {
     food:            '#f59e0b',
-    rent_hostel:     '#8b5cf6',
-    travel:          '#06b6d4',
-    subscriptions:   '#ec4899',
-    study_materials: '#f472b6',
+    transport:       '#06b6d4',
+    shopping:        '#ec4899',
+    entertainment:   '#8b5cf6',
+    health:          '#ef4444',
+    rent:            '#6366f1',
+    education:       '#f472b6',
+    work:            '#14b8a6',
+    travel:          '#3b82f6',
     other:           '#64748b',
+    income:          '#10b981',
+    // Legacy aliases (mapped to primary colors)
+    rent_hostel:     '#6366f1',
+    subscriptions:   '#8b5cf6',
+    study_materials: '#f472b6',
+};
+
+const normalizeCategory = (cat: string): string => {
+    if (cat === 'rent_hostel') return 'rent';
+    if (cat === 'subscriptions') return 'entertainment';
+    if (cat === 'study_materials') return 'education';
+    return cat;
 };
 
 const Analytics = () => {
@@ -49,9 +65,10 @@ const Analytics = () => {
 
     // Category breakdown
     const categoryTotals = currentMonthExpenses
-        .filter(e => e.category !== 'income')
+        .filter(e => e.category !== 'income' && e.type !== 'income')
         .reduce((acc, e) => {
-            acc[e.category] = (acc[e.category] || 0) + e.amount;
+            const normalized = normalizeCategory(e.category);
+            acc[normalized] = (acc[normalized] || 0) + e.amount;
             return acc;
         }, {} as Record<string, number>);
 

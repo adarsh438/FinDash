@@ -154,7 +154,7 @@ const Dashboard = () => {
                                     id={expense.id}
                                     title={expense.title}
                                     date={expense.date}
-                                    amount={expense.category === 'income' ? expense.amount : -expense.amount}
+                                    amount={(expense.category === 'income' || expense.type === 'income') ? expense.amount : -expense.amount}
                                     category={expense.category}
                                     onDelete={handleDelete}
                                 />

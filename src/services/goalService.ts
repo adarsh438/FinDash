@@ -143,7 +143,7 @@ export const goalService = {
                 throw new Error("Amount to add must be positive");
             }
 
-            if (goalId.startsWith('demo_') || goalId.startsWith('g')) {
+            if (goalId.startsWith('demo_')) {
                 const current = getDemoGoals();
                 const updated = current.map(g =>
                     g.id === goalId ? { ...g, currentAmount: g.currentAmount + amountToAdd } : g
@@ -165,7 +165,7 @@ export const goalService = {
     // Delete a goal
     deleteGoal: async (goalId: string) => {
         try {
-            if (goalId.startsWith('demo_') || goalId.startsWith('g')) {
+            if (goalId.startsWith('demo_')) {
                 const current = getDemoGoals();
                 const updated = current.filter(g => g.id !== goalId);
                 saveDemoGoals(updated);

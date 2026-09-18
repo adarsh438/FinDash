@@ -5,7 +5,6 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { CurrencyProvider } from './context/CurrencyContext.tsx'
-import { ToastProvider } from './context/ToastContext.tsx'
 import { BrowserRouter } from 'react-router-dom'
 
 createRoot(document.getElementById('root')!).render(
@@ -13,9 +12,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <CurrencyProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
+          <App />
         </CurrencyProvider>
       </AuthProvider>
     </BrowserRouter>
